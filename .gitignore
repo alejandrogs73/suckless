@@ -10,11 +10,12 @@ dmenu/dmenu
 dmenu/stest
 slstatus/slstatus
 slock/slock
-clipmenu/clipmenu
-clipmenu/clipmenud
-clipmenu/clipdel
-clipmenu/clipctl
-clipmenu/clipserve
+clipmenu/src/clipmenu
+clipmenu/src/clipmenud
+clipmenu/src/clipdel
+clipmenu/src/clipdelmenu
+clipmenu/src/clipctl
+clipmenu/src/clipserve
 
 # Restos de parches
 *.orig
