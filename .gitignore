@@ -1,0 +1,25 @@
+# Archivos objeto compilados
+*.o
+
+# Binarios finales
+dwm/dwm
+st/st
+scroll/scroll
+scroll/ptty
+dmenu/dmenu
+dmenu/stest
+slstatus/slstatus
+slock/slock
+clipmenu/clipmenu
+clipmenu/clipmenud
+clipmenu/clipdel
+clipmenu/clipctl
+clipmenu/clipserve
+
+# Restos de parches
+*.orig
+*.rej
+
+# Archivos temporales de edición
+*~
+*.swp
