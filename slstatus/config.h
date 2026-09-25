@@ -13,6 +13,7 @@ static const char unknown_str[] = "N/A";
  * function            description                     argument (example)
  *
  * battery_perc        battery percentage              battery name (BAT0)
+ * battery_state       battery charging state          battery name (BAT0)
  * cpu_perc            cpu usage in percent            NULL
  * datetime            date and time                   format string (%F %T)
  * disk_free           free disk space in GB           mountpoint path (/)
@@ -21,12 +22,17 @@ static const char unknown_str[] = "N/A";
  * wifi_essid          WiFi network name               interface name (wlan0)
  */
 static const struct arg args[] = {
-    /* function         format                  argument */
-    { cpu_perc,         "[ CPU: %s%% ] ",       NULL },
-    { ram_perc,         "[ RAM: %s%% ] ",       NULL },
-    { wifi_essid,       "[ WiFi: %s ] ",        "wlp4s0" },
-    { battery_perc,     "[ BAT: %s%% ] ",       "BAT1" },
-    { run_command,      "[ VOL: %s ] ",         "v=$(pactl get-sink-volume @DEFAULT_SINK@ | awk '{print $5}'); m=$(pactl get-sink-mute @DEFAULT_SINK@ | awk '{print $2}'); [ \"$m\" = \"yes\" ] && echo \"$v MUT\" || echo \"$v\"" },
-    { run_command,      "[ BT: %s ] ",          "bluetoothctl devices Connected | head -1 | cut -d' ' -f3-" },
-    { datetime,         "[ %s ]",               "%d/%m/%y %H:%M:%S" },
+	/* function         format                  argument */
+	{ cpu_perc,         "[ CPU: %s%% ] ",       NULL },
+	{ ram_perc,         "[ RAM: %s%% ] ",       NULL },
+	/* ETH si hay cable en enp3s0; si no, la red WiFi de wlp4s0 */
+	{ run_command,      "[ %s ] ",              "if [ \"$(cat /sys/class/net/enp3s0/operstate)\" = up ]; then echo ETH; "
+	                                            "else s=$(iw dev wlp4s0 link | sed -n 's/^[[:space:]]*SSID: //p'); echo \"WiFi: ${s:-N/A}\"; fi" },
+	{ battery_perc,     "[ BAT: %s%%",          "BAT1" },
+	{ battery_state,    " %s ] ",               "BAT1" },
+	/* mismo volumen que maneja wpctl (PipeWire); MIC OFF si el micro está silenciado */
+	{ run_command,      "[ VOL: %s ] ",         "wpctl get-volume @DEFAULT_AUDIO_SINK@ | awk '{ printf \"%d%%\", $2 * 100 + 0.5 } /MUTED/ { printf \" MUT\" }'; "
+	                                            "wpctl get-volume @DEFAULT_AUDIO_SOURCE@ | grep -q MUTED && printf ' MIC OFF'" },
+	{ run_command,      "[ BT: %s ] ",          "bluetoothctl devices Connected | head -1 | cut -d' ' -f3-" },
+	{ datetime,         "[ %s ]",               "%d/%m/%y %H:%M:%S" },
 };
