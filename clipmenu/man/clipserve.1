@@ -1,0 +1,44 @@
+.TH CLIPSERVE 1
+.SH NAME
+clipserve \- serve a selected clipboard entry to X11 selections
+.SH SYNOPSIS
+.B clipserve
+[\-s selection]... <hash>
+.SH DESCRIPTION
+.B clipserve
+serves the clipboard content identified by a hash from the clip store on the
+configured X11 selections. By default, it serves both PRIMARY and CLIPBOARD.
+
+This program is not usually invoked directly, but is instead called from inside
+other clipmenu applications.
+.SH OPTIONS
+.TP
+.B \-h, \--help
+Display the help message (invokes the manual page).
+.TP
+.B \-s, \--selection
+Specify a selection to serve. Valid values are "primary", "clipboard", and
+"secondary". This option may be repeated. If not provided, PRIMARY and
+CLIPBOARD are used.
+.TP
+clipserve requires a hexadecimal hash of the clipboard entry to be served.
+.SH CONFIGURATION
+See
+.BR clipmenu.conf (5).
+.SH DEPENDENCIES
+clipserve needs a valid clip store and an operational X11 environment to
+function correctly.
+.SH SEE ALSO
+.BR clipctl (1),
+.BR clipdel (1),
+.BR clipmenu (1),
+.BR clipmenud (1),
+.BR clipmenu.conf (5)
+.SH AUTHOR
+Chris Down
+.MT chris@chrisdown.name
+.ME
+.SH REPORTING BUGS
+Please send bug reports to
+.UR https://github.com/cdown/clipmenu/issues
+.UE .
