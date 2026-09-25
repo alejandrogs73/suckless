@@ -19,6 +19,39 @@ pero se puede seguir actualizando desde el proyecto original.
 
 Los demás funcionan igual que dwm, cambiando el nombre en `--prefix` y en la URL.
 
+## Atajos de dwm
+
+`Mod` es `Super` (en el dwm original es `Alt`). Los atajos de ratón también usan
+`Super`. Solo aparecen los atajos que cambian respecto al original o que son
+nuevos; el resto están igual. Los atajos de st, scroll, dmenu y slock no se han
+tocado.
+
+### Cambiados
+
+| Acción | Original | Ahora |
+|---|---|---|
+| Abrir terminal (`st`) | Mod+Shift+Return | Mod+Return |
+| zoom (mover la ventana al área principal) | Mod+Return | Mod+Shift+Return |
+| Cerrar ventana | Mod+Shift+c | Mod+q |
+| Salir de dwm | Mod+Shift+q | Mod+Shift+m |
+
+### Nuevos
+
+| Atajo | Acción |
+|---|---|
+| Mod+v | clipmenu (misma paleta y fuente que dmenu) |
+| Mod+Shift+l | Bloquear la pantalla con `slock` |
+| Mod+`-` / Mod+`+` | Reducir / aumentar los gaps |
+| Mod+Shift+`+` | Gaps a 0 |
+| Tecla de subir / bajar volumen | Volumen ±5% con `wpctl` (máximo 100%) |
+| Tecla de silenciar | Silenciar o activar el audio |
+| Tecla de silenciar micro o Mod+ñ | Silenciar o activar el micrófono |
+| Impr Pant | Captura de pantalla completa con `maim` |
+| Shift+Impr Pant | Captura de una región |
+
+Las capturas se guardan en `~/Imágenes/Capturas`, se copian al portapapeles y
+muestran una notificación.
+
 ## Notas
 
 - La configuración personal está en `config.h`. `config.def.h` es la versión
