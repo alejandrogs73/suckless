@@ -1,0 +1,22 @@
+#!/bin/sh
+# Bloquear con slock ANTES de suspender, para que al volver no se vea el
+# escritorio. zzz ejecuta este hook como root; slock se lanza como el
+# usuario de la sesión de dwm, con su DISPLAY y XAUTHORITY.
+
+pgrep -x slock >/dev/null && exit 0
+
+pid=$(pgrep -xo dwm) || exit 0
+user=$(getent passwd "$(stat -c %u "/proc/$pid")" | cut -d: -f1)
+env=$(tr '\0' '\n' <"/proc/$pid/environ" | grep -E '^(DISPLAY|XAUTHORITY)=')
+[ -n "$user" ] && [ -n "$env" ] || exit 0
+
+env $env setsid chpst -u "$user" /usr/local/bin/slock >/dev/null 2>&1 &
+
+# Esperar a que slock arranque y tape la pantalla (máximo 2 s) antes de
+# dejar que zzz siga con la suspensión.
+i=0
+while ! pgrep -x slock >/dev/null && [ "$i" -lt 20 ]; do
+	sleep 0.1
+	i=$((i + 1))
+done
+sleep 0.5
