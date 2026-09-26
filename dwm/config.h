@@ -6,6 +6,7 @@
 static const unsigned int borderpx  = 2;        /* border pixel of windows */
 static const unsigned int gappx     = 4;        /* gaps between windows */
 static const unsigned int snap      = 32;       /* snap pixel */
+static const int swallowfloating    = 0;        /* 1 means swallow floating windows by default */
 static const int showbar            = 1;        /* 0 means no bar */
 static const int topbar             = 1;        /* 0 means bottom bar */
 static const char *fonts[]          = { "Fira Code:size=11:antialias=true:autohint=true" };
@@ -32,8 +33,18 @@ static const Rule rules[] = {
 	 *	WM_CLASS(STRING) = instance, class
 	 *	WM_NAME(STRING) = title
 	 */
-	/* class      instance    title       tags mask     isfloating   monitor */
-	{ "Gimp",     NULL,       NULL,       0,            1,           -1 },
+	/* Las ventanas que flotan por una regla se abren centradas.
+	 * swallow: lo que se abre desde una terminal (isterminal) la sustituye
+	 * hasta que se cierra; noswallow = 1 lo evita para esa ventana. */
+	/* class          instance           title           tags mask  isfloating  isterminal  noswallow  monitor */
+	{ "st-256color",  NULL,              NULL,           0,         0,          1,          0,         -1 },
+	{ "st-float",     NULL,              NULL,           0,         1,          0,          1,         -1 }, /* st -c st-float (p. ej. nmtui) */
+	{ "Gimp",         NULL,              NULL,           0,         1,          0,          0,         -1 },
+	{ NULL,           "pavucontrol",     NULL,           0,         1,          0,          0,         -1 },
+	{ NULL,           "blueman-manager", NULL,           0,         1,          0,          0,         -1 },
+	{ "Firefox",      "Places",          NULL,           0,         1,          0,          0,         -1 }, /* biblioteca/descargas */
+	{ "Firefox",      "Toolkit",         NULL,           0,         1,          0,          0,         -1 }, /* picture-in-picture */
+	{ NULL,           NULL,              "Event Tester", 0,         0,          0,          1,         -1 }, /* xev */
 };
 
 /* layout(s) */
@@ -70,10 +81,42 @@ static const char *lockcmd[]  = { "slock", NULL };
 
 /* Audio: tras cada cambio se avisa a slstatus (SIGUSR1) para que refresque la barra al momento */
 #define STATUSREFRESH "; pkill -USR1 -x slstatus"
-#define VOLUP    SHCMD("wpctl set-volume -l 1.0 @DEFAULT_AUDIO_SINK@ 5%+" STATUSREFRESH)
-#define VOLDOWN  SHCMD("wpctl set-volume @DEFAULT_AUDIO_SINK@ 5%-" STATUSREFRESH)
-#define VOLMUTE  SHCMD("wpctl set-mute @DEFAULT_AUDIO_SINK@ toggle" STATUSREFRESH)
-#define MICMUTE  SHCMD("wpctl set-mute @DEFAULT_AUDIO_SOURCE@ toggle" STATUSREFRESH)
+#define VOLUPCMD   "wpctl set-volume -l 1.0 @DEFAULT_AUDIO_SINK@ 5%+" STATUSREFRESH
+#define VOLDOWNCMD "wpctl set-volume @DEFAULT_AUDIO_SINK@ 5%-" STATUSREFRESH
+#define VOLMUTECMD "wpctl set-mute @DEFAULT_AUDIO_SINK@ toggle" STATUSREFRESH
+#define MICMUTECMD "wpctl set-mute @DEFAULT_AUDIO_SOURCE@ toggle" STATUSREFRESH
+#define VOLUP      SHCMD(VOLUPCMD)
+#define VOLDOWN    SHCMD(VOLDOWNCMD)
+#define VOLMUTE    SHCMD(VOLMUTECMD)
+#define MICMUTE    SHCMD(MICMUTECMD)
+
+/*
+ * Clics en la barra (parche statuscmd). El número es el byte que rodea cada
+ * zona en el config.h de slstatus; el botón pulsado llega en $BUTTON
+ * (1 izquierdo, 2 central, 3 derecho, 4/5 rueda arriba/abajo).
+ */
+static const StatusCmd statuscmds[] = {
+	/* red: izquierdo conectarse a una red, derecho el menú completo de nmtui */
+	{ "case $BUTTON in "
+	  "1) st -c st-float -g 90x30 -e nmtui connect ;; "
+	  "3) st -c st-float -g 90x30 -e nmtui ;; "
+	  "esac", 1 },
+	/* volumen: izquierdo pavucontrol, central silenciar, derecho micro, rueda subir/bajar */
+	{ "case $BUTTON in "
+	  "1) pavucontrol ;; "
+	  "2) " VOLMUTECMD " ;; "
+	  "3) " MICMUTECMD " ;; "
+	  "4) " VOLUPCMD " ;; "
+	  "5) " VOLDOWNCMD " ;; "
+	  "esac", 2 },
+	/* bluetooth: izquierdo blueman, derecho encender/apagar el adaptador */
+	{ "case $BUTTON in "
+	  "1) blueman-manager ;; "
+	  "3) if bluetoothctl show | grep -q 'Powered: yes'; "
+	  "then bluetoothctl power off; else bluetoothctl power on; fi >/dev/null" STATUSREFRESH " ;; "
+	  "esac", 3 },
+};
+static const char *statuscmd[] = { "/bin/sh", "-c", NULL, NULL };
 
 /* Capturas: se guardan en ~/Imágenes/Capturas y se copian al portapapeles */
 #define SCREENSHOT(opts) SHCMD( \
@@ -123,6 +166,7 @@ static const Key keys[] = {
 	TAGKEYS(                        XK_8,                      7)
 	TAGKEYS(                        XK_9,                      8)
 	{ MODKEY|ShiftMask,             XK_m,      quit,           {0} },
+	{ MODKEY|ShiftMask,             XK_r,      quit,           {1} }, /* reiniciar dwm sin cerrar ventanas */
 
 	/* audio */
 	{ 0,                            XF86XK_AudioRaiseVolume, spawn, VOLUP },
@@ -143,7 +187,11 @@ static const Button buttons[] = {
 	{ ClkLtSymbol,          0,              Button1,        setlayout,      {0} },
 	{ ClkLtSymbol,          0,              Button3,        setlayout,      {.v = &layouts[2]} },
 	{ ClkWinTitle,          0,              Button2,        zoom,           {0} },
-	{ ClkStatusText,        0,              Button2,        spawn,          {.v = termcmd } },
+	{ ClkStatusText,        0,              Button1,        spawn,          {.v = statuscmd } },
+	{ ClkStatusText,        0,              Button2,        spawn,          {.v = statuscmd } },
+	{ ClkStatusText,        0,              Button3,        spawn,          {.v = statuscmd } },
+	{ ClkStatusText,        0,              Button4,        spawn,          {.v = statuscmd } },
+	{ ClkStatusText,        0,              Button5,        spawn,          {.v = statuscmd } },
 	{ ClkClientWin,         MODKEY,         Button1,        movemouse,      {0} },
 	{ ClkClientWin,         MODKEY,         Button2,        togglefloating, {0} },
 	{ ClkClientWin,         MODKEY,         Button3,        resizemouse,    {0} },
