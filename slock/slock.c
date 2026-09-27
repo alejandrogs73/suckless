@@ -12,12 +12,15 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
+#include <time.h>
 #include <unistd.h>
+#include <sys/select.h>
 #include <sys/types.h>
 #include <X11/extensions/Xrandr.h>
 #include <X11/keysym.h>
 #include <X11/Xlib.h>
 #include <X11/Xutil.h>
+#include <X11/Xft/Xft.h>
 
 #include "util.h"
 
@@ -30,12 +33,39 @@ enum {
 	NUMCOLS
 };
 
+enum {
+	COLBG,
+	COLFG,
+	COLDIM,
+	COLCHARGE,
+	COLLOW,
+	NUMUICOLS
+};
+
 struct lock {
 	int screen;
 	Window root, win;
 	Pixmap pmap;
 	unsigned long colors[NUMCOLS];
+	/* dibujado: doble búfer del tamaño de la pantalla */
+	int w, h;
+	Pixmap buf;
+	XftDraw *draw;
+	XftColor bar[NUMCOLS];
+	XftColor ui[NUMUICOLS];
+	XftFont *fclock, *fdate, *ftext, *ficon;
 };
+
+/* estado que se muestra en la pantalla de bloqueo */
+struct state {
+	unsigned int len;   /* caracteres tecleados */
+	int color;          /* INIT, INPUT o FAILED */
+	int failure;        /* ha habido una contraseña incorrecta */
+	char clock[16], date[64], bat[16];
+	int batlevel, charging;
+};
+
+static char username[64];
 
 struct xrandr {
 	int active;
@@ -123,23 +153,296 @@ gethash(void)
 	return hash;
 }
 
+static XftFont *
+loadfont(Display *dpy, int screen, const char *name)
+{
+	XftFont *f;
+
+	if (!(f = XftFontOpenName(dpy, screen, name)) &&
+	    !(f = XftFontOpenName(dpy, screen, "monospace")))
+		die("slock: cannot load font %s\n", name);
+	return f;
+}
+
+static void
+setupdraw(Display *dpy, struct lock *lock)
+{
+	Visual *vis = DefaultVisual(dpy, lock->screen);
+	Colormap cmap = DefaultColormap(dpy, lock->screen);
+	const char *uinames[NUMUICOLS] = {
+		[COLBG] = bgcolor, [COLFG] = fgcolor, [COLDIM] = dimcolor,
+		[COLCHARGE] = colorname[INPUT], [COLLOW] = colorname[FAILED],
+	};
+	int i;
+
+	for (i = 0; i < NUMCOLS; i++)
+		if (!XftColorAllocName(dpy, vis, cmap, colorname[i], &lock->bar[i]))
+			die("slock: cannot allocate color %s\n", colorname[i]);
+	for (i = 0; i < NUMUICOLS; i++)
+		if (!XftColorAllocName(dpy, vis, cmap, uinames[i], &lock->ui[i]))
+			die("slock: cannot allocate color %s\n", uinames[i]);
+
+	lock->fclock = loadfont(dpy, lock->screen, clockfont);
+	lock->fdate = loadfont(dpy, lock->screen, datefont);
+	lock->ftext = loadfont(dpy, lock->screen, textfont);
+	lock->ficon = loadfont(dpy, lock->screen, iconfont);
+
+	lock->w = DisplayWidth(dpy, lock->screen);
+	lock->h = DisplayHeight(dpy, lock->screen);
+	lock->buf = XCreatePixmap(dpy, lock->root, lock->w, lock->h,
+	                          DefaultDepth(dpy, lock->screen));
+	lock->draw = XftDrawCreate(dpy, lock->buf, vis, cmap);
+}
+
+static void
+resizedraw(Display *dpy, struct lock *lock, int w, int h)
+{
+	if (w == lock->w && h == lock->h)
+		return;
+	lock->w = w;
+	lock->h = h;
+	XFreePixmap(dpy, lock->buf);
+	lock->buf = XCreatePixmap(dpy, lock->root, w, h,
+	                          DefaultDepth(dpy, lock->screen));
+	XftDrawChange(lock->draw, lock->buf);
+}
+
+static int
+textw(Display *dpy, XftFont *f, const char *s)
+{
+	XGlyphInfo ext;
+
+	XftTextExtentsUtf8(dpy, f, (const FcChar8 *)s, strlen(s), &ext);
+	return ext.xOff;
+}
+
+static int
+iconw(Display *dpy, XftFont *f, FcChar32 icon)
+{
+	XGlyphInfo ext;
+
+	if (!icon || !XftCharExists(dpy, f, icon))
+		return 0;
+	XftTextExtents32(dpy, f, &icon, 1, &ext);
+	return ext.xOff;
+}
+
+/* icono (opcional) + separación + texto, con la línea base en y */
+static int
+drawlabel(Display *dpy, struct lock *lock, XftFont *f, XftColor *c,
+          int x, int y, FcChar32 icon, const char *s)
+{
+	int iw = iconw(dpy, lock->ficon, icon), gap = iw ? f->height / 2 : 0;
+
+	if (iw)
+		XftDrawString32(lock->draw, c, lock->ficon, x, y, &icon, 1);
+	XftDrawStringUtf8(lock->draw, c, f, x + iw + gap, y,
+	                  (const FcChar8 *)s, strlen(s));
+	return iw + gap + textw(dpy, f, s);
+}
+
+static int
+labelw(Display *dpy, struct lock *lock, XftFont *f, FcChar32 icon,
+       const char *s)
+{
+	int iw = iconw(dpy, lock->ficon, icon);
+
+	return iw + (iw ? f->height / 2 : 0) + textw(dpy, f, s);
+}
+
+/* Actualiza hora, fecha y batería. Devuelve 1 si algo ha cambiado. */
+static int
+updatestate(struct state *st)
+{
+	static const char *wdays[] = { "domingo", "lunes", "martes",
+		"miércoles", "jueves", "viernes", "sábado" };
+	static const char *months[] = { "enero", "febrero", "marzo", "abril",
+		"mayo", "junio", "julio", "agosto", "septiembre", "octubre",
+		"noviembre", "diciembre" };
+	char clk[sizeof(st->clock)], date[sizeof(st->date)], bat[sizeof(st->bat)];
+	char path[128], status[32] = "";
+	int level = -1, charging = 0, changed;
+	time_t t = time(NULL);
+	struct tm *tm = localtime(&t);
+	FILE *f;
+
+	strftime(clk, sizeof(clk), "%H:%M", tm);
+	snprintf(date, sizeof(date), "%s, %d de %s", wdays[tm->tm_wday],
+	         tm->tm_mday, months[tm->tm_mon]);
+	date[0] = toupper((unsigned char)date[0]);
+
+	snprintf(path, sizeof(path), "/sys/class/power_supply/%s/capacity",
+	         battery);
+	if ((f = fopen(path, "r"))) {
+		if (fscanf(f, "%d", &level) != 1)
+			level = -1;
+		fclose(f);
+	}
+	snprintf(path, sizeof(path), "/sys/class/power_supply/%s/status",
+	         battery);
+	if ((f = fopen(path, "r"))) {
+		if (fscanf(f, "%31s", status) != 1)
+			status[0] = '\0';
+		fclose(f);
+	}
+	charging = !strcmp(status, "Charging") || !strcmp(status, "Full");
+	if (level >= 0)
+		snprintf(bat, sizeof(bat), "%d%%", level);
+	else
+		bat[0] = '\0';
+
+	changed = strcmp(clk, st->clock) || strcmp(date, st->date) ||
+	          strcmp(bat, st->bat) || charging != st->charging;
+	memcpy(st->clock, clk, sizeof(clk));
+	memcpy(st->date, date, sizeof(date));
+	memcpy(st->bat, bat, sizeof(bat));
+	st->batlevel = level;
+	st->charging = charging;
+	return changed;
+}
+
+/* Símbolos de Nerd Font (Material Design) */
+#define MIN(a, b) ((a) < (b) ? (a) : (b))
+
+#define ICON_LOCK     0xF033E
+#define ICON_ALERT    0xF0026
+#define ICON_USER     0xF0004
+#define ICON_CHARGING 0xF0084
+#define ICON_BAT10    0xF007A   /* 10 % .. 90 % seguidos; 100 % es 0xF0079 */
+#define ICON_BAT100   0xF0079
+
+static FcChar32
+baticon(const struct state *st)
+{
+	if (st->charging)
+		return ICON_CHARGING;
+	if (st->batlevel >= 95)
+		return ICON_BAT100;
+	if (st->batlevel < 10)
+		return ICON_ALERT;
+	return ICON_BAT10 + st->batlevel / 10 - 1;
+}
+
+/* Dibuja la pantalla de bloqueo en el rectángulo de un monitor */
+static void
+drawmon(Display *dpy, struct lock *lock, const struct state *st,
+        int mx, int my, int mw, int mh)
+{
+	XftColor *fg = &lock->ui[COLFG], *dim = &lock->ui[COLDIM], *msgc;
+	char msg[128];
+	FcChar32 icon = 0;
+	int x, y, w, pad = mh / 24, low;
+	unsigned int i, n;
+
+	/* reloj y fecha, algo por encima del centro */
+	y = my + mh * 2 / 5;
+	x = mx + (mw - textw(dpy, lock->fclock, st->clock)) / 2;
+	XftDrawStringUtf8(lock->draw, fg, lock->fclock, x, y,
+	                  (const FcChar8 *)st->clock, strlen(st->clock));
+	y += lock->fdate->height * 3 / 2;
+	x = mx + (mw - textw(dpy, lock->fdate, st->date)) / 2;
+	XftDrawStringUtf8(lock->draw, dim, lock->fdate, x, y,
+	                  (const FcChar8 *)st->date, strlen(st->date));
+
+	/* mensaje de estado: indicación, puntos o error */
+	msgc = dim;
+	if (st->color == INPUT) {
+		n = MIN(st->len, maxdots);
+		for (i = 0, msg[0] = '\0'; i < n; i++)
+			strcat(msg, i ? " ●" : "●");
+		msgc = &lock->bar[INPUT];
+	} else if (st->color == FAILED && st->failure) {
+		icon = ICON_ALERT;
+		snprintf(msg, sizeof(msg), "Contraseña incorrecta");
+		msgc = &lock->bar[FAILED];
+	} else {
+		icon = ICON_LOCK;
+		snprintf(msg, sizeof(msg), "Escribe la contraseña");
+	}
+	y = my + mh * 3 / 5 + lock->ftext->ascent;
+	x = mx + (mw - labelw(dpy, lock, lock->ftext, icon, msg)) / 2;
+	drawlabel(dpy, lock, lock->ftext, msgc, x, y, icon, msg);
+
+	/* abajo: usuario a la izquierda, batería a la derecha */
+	y = my + mh - barheight - pad;
+	drawlabel(dpy, lock, lock->ftext, dim, mx + pad, y, ICON_USER, username);
+	if (st->bat[0]) {
+		low = !st->charging && st->batlevel <= batterylow;
+		w = labelw(dpy, lock, lock->ftext, baticon(st), st->bat);
+		drawlabel(dpy, lock, lock->ftext,
+		          low ? &lock->ui[COLLOW] :
+		          st->charging ? &lock->ui[COLCHARGE] : fg,
+		          mx + mw - pad - w, y, baticon(st), st->bat);
+	}
+
+	/* barra con el color del estado */
+	XftDrawRect(lock->draw, &lock->bar[st->color], mx, my + mh - barheight,
+	            mw, barheight);
+}
+
+static void
+drawlock(Display *dpy, struct lock *lock, const struct state *st)
+{
+	XRRMonitorInfo *mons;
+	int i, n = 0;
+
+	XftDrawRect(lock->draw, &lock->ui[COLBG], 0, 0, lock->w, lock->h);
+	mons = XRRGetMonitors(dpy, lock->root, True, &n);
+	for (i = 0; i < n; i++)
+		drawmon(dpy, lock, st, mons[i].x, mons[i].y,
+		        mons[i].width, mons[i].height);
+	if (mons)
+		XRRFreeMonitors(mons);
+	if (n <= 0)
+		drawmon(dpy, lock, st, 0, 0, lock->w, lock->h);
+	XCopyArea(dpy, lock->buf, lock->win, DefaultGC(dpy, lock->screen),
+	          0, 0, lock->w, lock->h, 0, 0);
+}
+
+static void
+drawall(Display *dpy, struct lock **locks, int nscreens,
+        const struct state *st)
+{
+	int screen;
+
+	for (screen = 0; screen < nscreens; screen++)
+		drawlock(dpy, locks[screen], st);
+	XFlush(dpy);
+}
+
 static void
 readpw(Display *dpy, struct xrandr *rr, struct lock **locks, int nscreens,
        const char *hash)
 {
 	XRRScreenChangeNotifyEvent *rre;
 	char buf[32], passwd[256], *inputhash;
-	int num, screen, running, failure, oldc;
-	unsigned int len, color;
+	int num, screen, running, xfd;
+	struct state st = { 0 };
+	struct timeval tv;
 	KeySym ksym;
 	XEvent ev;
+	fd_set fds;
 
-	len = 0;
 	running = 1;
-	failure = 0;
-	oldc = INIT;
+	st.color = INIT;
+	xfd = ConnectionNumber(dpy);
+	updatestate(&st);
+	drawall(dpy, locks, nscreens, &st);
 
-	while (running && !XNextEvent(dpy, &ev)) {
+	while (running) {
+		/* sin eventos pendientes: esperar como mucho 1 s y refrescar
+		 * reloj y batería si han cambiado (también tras suspender) */
+		if (!XPending(dpy)) {
+			FD_ZERO(&fds);
+			FD_SET(xfd, &fds);
+			tv.tv_sec = 1;
+			tv.tv_usec = 0;
+			if (select(xfd + 1, &fds, NULL, NULL, &tv) <= 0 &&
+			    updatestate(&st))
+				drawall(dpy, locks, nscreens, &st);
+			continue;
+		}
+		XNextEvent(dpy, &ev);
 		if (ev.type == KeyPress) {
 			explicit_bzero(&buf, sizeof(buf));
 			num = XLookupString(&ev.xkey, buf, sizeof(buf), &ksym, 0);
@@ -157,7 +460,7 @@ readpw(Display *dpy, struct xrandr *rr, struct lock **locks, int nscreens,
 				continue;
 			switch (ksym) {
 			case XK_Return:
-				passwd[len] = '\0';
+				passwd[st.len] = '\0';
 				errno = 0;
 				if (!(inputhash = crypt(passwd, hash)))
 					fprintf(stderr, "slock: crypt: %s\n", strerror(errno));
@@ -165,52 +468,56 @@ readpw(Display *dpy, struct xrandr *rr, struct lock **locks, int nscreens,
 					running = !!strcmp(inputhash, hash);
 				if (running) {
 					XBell(dpy, 100);
-					failure = 1;
+					st.failure = 1;
 				}
 				explicit_bzero(&passwd, sizeof(passwd));
-				len = 0;
+				st.len = 0;
 				break;
 			case XK_Escape:
 				explicit_bzero(&passwd, sizeof(passwd));
-				len = 0;
+				st.len = 0;
 				break;
 			case XK_BackSpace:
-				if (len)
-					passwd[--len] = '\0';
+				if (st.len)
+					passwd[--st.len] = '\0';
 				break;
 			default:
 				if (num && !iscntrl((unsigned char)buf[0]) &&
-				    (len + num < sizeof(passwd))) {
-					memcpy(passwd + len, buf, num);
-					len += num;
+				    (st.len + num < sizeof(passwd))) {
+					memcpy(passwd + st.len, buf, num);
+					st.len += num;
 				} else if (buf[0] == '\025') { /* ctrl-u clears input */
 					explicit_bzero(&passwd, sizeof(passwd));
-					len = 0;
+					st.len = 0;
 				}
 				break;
 			}
-			color = len ? INPUT : ((failure || failonclear) ? FAILED : INIT);
-			if (running && oldc != color) {
-				for (screen = 0; screen < nscreens; screen++) {
-					XSetWindowBackground(dpy,
-					                     locks[screen]->win,
-					                     locks[screen]->colors[color]);
-					XClearWindow(dpy, locks[screen]->win);
-				}
-				oldc = color;
+			st.color = st.len ? INPUT :
+			           ((st.failure || failonclear) ? FAILED : INIT);
+			if (running) {
+				updatestate(&st);
+				drawall(dpy, locks, nscreens, &st);
 			}
+		} else if (ev.type == Expose) {
+			if (ev.xexpose.count == 0)
+				drawall(dpy, locks, nscreens, &st);
 		} else if (rr->active && ev.type == rr->evbase + RRScreenChangeNotify) {
 			rre = (XRRScreenChangeNotifyEvent*)&ev;
 			for (screen = 0; screen < nscreens; screen++) {
 				if (locks[screen]->win == rre->window) {
 					if (rre->rotation == RR_Rotate_90 ||
-					    rre->rotation == RR_Rotate_270)
+					    rre->rotation == RR_Rotate_270) {
 						XResizeWindow(dpy, locks[screen]->win,
 						              rre->height, rre->width);
-					else
+						resizedraw(dpy, locks[screen],
+						           rre->height, rre->width);
+					} else {
 						XResizeWindow(dpy, locks[screen]->win,
 						              rre->width, rre->height);
-					XClearWindow(dpy, locks[screen]->win);
+						resizedraw(dpy, locks[screen],
+						           rre->width, rre->height);
+					}
+					drawlock(dpy, locks[screen], &st);
 					break;
 				}
 			}
@@ -243,16 +550,20 @@ lockscreen(Display *dpy, struct xrandr *rr, int screen)
 		lock->colors[i] = color.pixel;
 	}
 
+	setupdraw(dpy, lock);
+
 	/* init */
 	wa.override_redirect = 1;
-	wa.background_pixel = lock->colors[INIT];
+	wa.background_pixel = lock->ui[COLBG].pixel;
+	wa.event_mask = ExposureMask;
 	lock->win = XCreateWindow(dpy, lock->root, 0, 0,
 	                          DisplayWidth(dpy, lock->screen),
 	                          DisplayHeight(dpy, lock->screen),
 	                          0, DefaultDepth(dpy, lock->screen),
 	                          CopyFromParent,
 	                          DefaultVisual(dpy, lock->screen),
-	                          CWOverrideRedirect | CWBackPixel, &wa);
+	                          CWOverrideRedirect | CWBackPixel | CWEventMask,
+	                          &wa);
 	lock->pmap = XCreateBitmapFromData(dpy, lock->win, curs, 8, 8);
 	invisible = XCreatePixmapCursor(dpy, lock->pmap, lock->pmap,
 	                                &color, &color, 0, 0);
@@ -339,6 +650,10 @@ main(int argc, char **argv) {
 #ifdef __linux__
 	dontkillme();
 #endif
+
+	/* nombre del usuario que bloquea, para mostrarlo */
+	if ((pwd = getpwuid(getuid())))
+		snprintf(username, sizeof(username), "%s", pwd->pw_name);
 
 	hash = gethash();
 	errno = 0;
