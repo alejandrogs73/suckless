@@ -34,4 +34,10 @@ clipmenud &
 gammastep &
 bateria &
 
+# Bloquear con slock tras 30 minutos sin tocar nada, y apagar la pantalla un
+# minuto después. Al suspender ya bloquea el hook de zzz (--ignore-sleep).
+xset s 1800 1800
+xset dpms 0 0 1860
+xss-lock --ignore-sleep -- slock &
+
 exec dwm

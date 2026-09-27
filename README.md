@@ -43,9 +43,11 @@ Hace seis pasos, que también se pueden lanzar por separado
    subclaves de autenticación. `.bashrc` ya apunta `SSH_AUTH_SOCK` al agente.
    Si `~/.gnupg` no existe todavía, no hace nada.
 6. `sistema`: copia `sistema/` en `/`, activa los servicios de runit (dbus,
-   elogind, polkitd, NetworkManager, bluetoothd, acpid, chronyd), quita
-   dhcpcd y wpa_supplicant (NetworkManager ya gestiona la red) y añade el
-   usuario a los grupos audio, video, input, network y bluetooth.
+   elogind, polkitd, NetworkManager, bluetoothd, acpid, chronyd, tlp,
+   automontaje), quita dhcpcd y wpa_supplicant (NetworkManager ya gestiona la
+   red) y añade el usuario a los grupos audio, video, input, network y
+   bluetooth. Los archivos de `sudoers.d` se validan con `visudo` y se
+   instalan con modo 440.
 
 Después hay que cerrar sesión y volver a entrar (por los grupos) y lanzar
 `startx`.
@@ -109,7 +111,16 @@ y muestran una notificación.
 - Al entrar en tty1 se lanza `startx` solo (`.bash_profile`); en las demás
   tty no.
 - `.xinitrc` arranca también `gammastep` (luz cálida de 20:00 a 8:00, con
-  transición de una hora) y `bateria` (avisa al 15 % y, en rojo, al 5 %).
+  transición de una hora) y `bateria` (avisa al 15 % y, en rojo, al 5 %; al
+  3 % suspende con `sudo -n zzz`, permitido sin contraseña en
+  `sistema/etc/sudoers.d/zzz`).
+- Tras 30 minutos sin tocar nada se bloquea con slock (`xss-lock`) y un
+  minuto después se apaga la pantalla.
+- Memorias USB y tarjetas SD: el servicio `automontaje` (runit, como root)
+  las monta en `/mnt/ETIQUETA`, o en `/mnt/sdXY` si no tienen etiqueta, y
+  las desmonta al sacarlas, con una notificación. FAT, exFAT y NTFS quedan a
+  nombre del usuario; los discos internos no se tocan. Antes de sacar una
+  memoria en la que se ha escrito, `sync` (o `sudo umount /mnt/...`).
 - Carpetas del usuario en inglés y sin tildes (`user-dirs.dirs`):
   Documents, Downloads e Images.
 

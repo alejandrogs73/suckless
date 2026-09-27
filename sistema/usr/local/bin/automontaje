@@ -1,0 +1,98 @@
+#!/bin/sh
+# Monta solas las memorias USB y tarjetas SD en /mnt/ETIQUETA (o /mnt/sdXY
+# si no tienen etiqueta) y las desmonta al sacarlas, avisando con una
+# notificación al usuario de la sesión gráfica. Lo lanza runit como root
+# (servicio automontaje). Los discos internos no se tocan.
+
+# Usuario dueño de la sesión de dwm, o el primero normal (UID 1000).
+usuario() {
+	pid=$(pgrep -xo dwm) && stat -c %u "/proc/$pid" || echo 1000
+}
+
+# avisar TÍTULO TEXTO: notificación en la sesión gráfica, si la hay
+avisar() {
+	pid=$(pgrep -xo dwm) || return 0
+	nombre=$(getent passwd "$(stat -c %u "/proc/$pid")" | cut -d: -f1)
+	entorno=$(tr '\0' '\n' <"/proc/$pid/environ" |
+		grep -E '^(DISPLAY|DBUS_SESSION_BUS_ADDRESS|XDG_RUNTIME_DIR)=')
+	# shellcheck disable=SC2086
+	env $entorno chpst -u "$nombre" notify-send -i drive-removable-media \
+		"$1" "$2" >/dev/null 2>&1 &
+}
+
+montar() {
+	dev=$1 tipo=$2 etiqueta=$3
+	findmnt -rn -S "$dev" >/dev/null && return
+
+	dir=/mnt/$(printf %s "$etiqueta" | tr -c 'A-Za-z0-9._-' _)
+	if [ "$dir" = /mnt/ ] || mountpoint -q "$dir" ||
+		{ [ -d "$dir" ] && [ -n "$(ls -A "$dir")" ]; }; then
+		dir=/mnt/${dev#/dev/}
+	fi
+
+	# Los sistemas de archivos de Windows no guardan dueños: se montan a
+	# nombre del usuario para que pueda escribir sin sudo.
+	uid=$(usuario)
+	gid=$(getent passwd "$uid" | cut -d: -f4)
+	opts=nosuid,nodev,noatime
+	case $tipo in
+	vfat) opts=$opts,uid=$uid,gid=$gid,umask=022,utf8,flush ;;
+	exfat) opts=$opts,uid=$uid,gid=$gid,umask=022 ;;
+	ntfs) tipo=ntfs3 opts=$opts,uid=$uid,gid=$gid,umask=022 ;;
+	esac
+
+	mkdir -p "$dir"
+	if mount -t "$tipo" -o "$opts" "$dev" "$dir"; then
+		avisar "Memoria montada" "$dir"
+	else
+		rmdir "$dir" 2>/dev/null
+		avisar "No se pudo montar" "$dev ($tipo)"
+	fi
+}
+
+desmontar() {
+	dir=$(findmnt -rn -o TARGET -S "$1") || return 0
+	case $dir in /mnt/*) ;; *) return ;; esac
+	umount -l "$dir" && rmdir "$dir" 2>/dev/null
+	avisar "Memoria desconectada" "$dir"
+}
+
+limpiar() {
+	accion='' dev='' bus='' uso='' tipo='' etiqueta=''
+}
+
+# Lee eventos de udev (bloques KEY=VALOR separados por una línea vacía).
+procesar() {
+	limpiar
+	while IFS= read -r linea; do
+		case $linea in
+		ACTION=*) accion=${linea#*=} ;;
+		DEVNAME=*) dev=${linea#*=} ;;
+		ID_BUS=*) bus=${linea#*=} ;;
+		ID_FS_USAGE=*) uso=${linea#*=} ;;
+		ID_FS_TYPE=*) tipo=${linea#*=} ;;
+		ID_FS_LABEL=*) etiqueta=${linea#*=} ;;
+		'')
+			case $bus:$dev in usb:* | *:/dev/mmcblk*) ;; *) dev='' ;; esac
+			if [ -n "$dev" ]; then
+				case $accion in
+				add | change) [ "$uso" = filesystem ] &&
+					montar "$dev" "$tipo" "$etiqueta" ;;
+				remove) desmontar "$dev" ;;
+				esac
+			fi
+			limpiar
+			;;
+		esac
+	done
+}
+
+{
+	# Primero lo que ya está conectado, luego los eventos nuevos
+	for d in /sys/class/block/*; do
+		echo ACTION=add
+		udevadm info --query=property --path="$d"
+		echo
+	done
+	exec udevadm monitor --udev --property --subsystem-match=block
+} | procesar

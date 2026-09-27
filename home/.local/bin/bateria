@@ -1,10 +1,13 @@
 #!/bin/sh
 # Avisa con una notificación cuando la batería baja del 15 % y del 5 %
-# mientras se descarga (una vez por umbral; al enchufar el cargador se
-# reinicia). Se lanza desde .xinitrc y se queda comprobando cada minuto.
+# mientras se descarga, y al 3 % suspende (con slock, como al cerrar la
+# tapa) en vez de dejar que se apague de golpe. Cada umbral actúa una vez;
+# al enchufar el cargador se reinicia. Se lanza desde .xinitrc y comprueba
+# cada minuto. Suspender usa "sudo -n zzz" (regla en sistema/etc/sudoers.d).
 
 BAJA=15
 CRITICA=5
+SUSPENDER=3
 
 bat=
 for b in /sys/class/power_supply/BAT*; do
@@ -18,6 +21,12 @@ while :; do
 	estado=$(cat "$bat/status")
 	if [ "$estado" != Discharging ]; then
 		avisado=100
+	elif [ "$nivel" -le "$SUSPENDER" ] && [ "$avisado" -gt "$SUSPENDER" ]; then
+		notify-send -u critical -h string:x-dunst-stack-tag:bateria \
+			-i battery-empty "Batería agotada" "Queda un $nivel %: suspendiendo en 10 s"
+		avisado=$SUSPENDER
+		sleep 10
+		[ "$(cat "$bat/status")" = Discharging ] && sudo -n zzz
 	elif [ "$nivel" -le "$CRITICA" ] && [ "$avisado" -gt "$CRITICA" ]; then
 		notify-send -u critical -h string:x-dunst-stack-tag:bateria \
 			-i battery-empty "Batería crítica" "Queda un $nivel %: enchufa el cargador ya"

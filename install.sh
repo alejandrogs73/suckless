@@ -17,9 +17,9 @@ PAQUETES="
 	libXrender-devel xorgproto imlib2-devel zlib-devel libxcrypt-devel
 
 	xorg xinit setxkbmap xrandr dbus elogind polkit
-	picom dunst libnotify feh maim xclip gammastep
+	picom dunst libnotify feh maim xclip gammastep xss-lock
 	pipewire wireplumber libspa-bluetooth alsa-pipewire rtkit pavucontrol
-	NetworkManager bluez blueman acpid chrony
+	NetworkManager bluez blueman acpid chrony tlp tlp-rdw
 	font-firacode nerd-fonts-symbols-ttf papirus-icon-theme papirus-folders
 	sassc gtk-engine-murrine gnome-themes-extra qt5ct qt6ct
 
@@ -32,7 +32,7 @@ SUCKLESS="dwm st dmenu slstatus slock scroll clipmenu"
 # Tema GTK Everforest, en una versión fija para que siempre salga igual
 GTK_TEMA_REPO=https://github.com/Fausto-Korpsvart/Everforest-GTK-Theme
 GTK_TEMA_COMMIT=9b8be4d6648ae9eaae3dd550105081f8c9054825
-SERVICIOS="dbus elogind polkitd NetworkManager bluetoothd acpid chronyd"
+SERVICIOS="dbus elogind polkitd NetworkManager bluetoothd acpid chronyd tlp automontaje"
 # NetworkManager gestiona la red él solo; estos servicios se pelean con él.
 SERVICIOS_FUERA="dhcpcd wpa_supplicant"
 GRUPOS="audio video input network bluetooth"
@@ -159,7 +159,15 @@ sistema() {
 	cd "$DIR/sistema"
 	find . -type f | while read -r f; do
 		f=${f#.}
-		sudo install -D -m "$(stat -c %a ".$f")" ".$f" "$f"
+		case $f in
+		/etc/sudoers.d/*)
+			# git no guarda el modo 440 que exige sudo; y un sudoers
+			# roto deja sin sudo, así que se valida antes de copiarlo.
+			visudo -cf ".$f" >/dev/null || die "sudoers inválido: $f"
+			sudo install -D -m 440 ".$f" "$f"
+			;;
+		*) sudo install -D -m "$(stat -c %a ".$f")" ".$f" "$f" ;;
+		esac
 		echo "  $f"
 	done
 	cd "$DIR"
