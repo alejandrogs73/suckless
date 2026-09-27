@@ -1,5 +1,7 @@
 # suckless
 
+**Español** · [English](README-en.md)
+
 Mis dotfiles para Void Linux: dwm, st, dmenu, slstatus, slock, scroll y
 clipmenu, más la configuración de la sesión (xinitrc, bash, picom, dunst...).
 Tema Everforest y fuente Fira Code en todos.
@@ -10,7 +12,7 @@ Tema Everforest y fuente Fira Code en todos.
 |---|---|
 | `suckless/` | Los programas, cada uno con su `config.h` y sus parches |
 | `home/` | Archivos que van en `~`, con la misma ruta (se enlazan) |
-| `sistema/` | Archivos que van en `/` (acpid, zzz, elogind) |
+| `sistema/` | Archivos que van en `/` (acpid, zzz, elogind, udev, sudoers, runit) |
 | `install.sh` | Lo instala todo en un Void recién instalado |
 
 ## Instalar
@@ -27,7 +29,8 @@ Hace seis pasos, que también se pueden lanzar por separado
 2. `suckless`: compila e instala los programas en `/usr/local`.
 3. `enlaces`: enlaza cada archivo de `home/` en `~`. Si ya existía un archivo
    distinto, lo guarda como `.bak`. Como son enlaces, editar `~/.bashrc` es
-   editar el repo.
+   editar el repo. También crea las carpetas del usuario y deja `~/.ssh` en
+   700.
 4. `gtk`: compila el tema [Everforest GTK](https://github.com/Fausto-Korpsvart/Everforest-GTK-Theme)
    (verde, oscuro, paleta medium) en `~/.themes`, en una versión fija, y lo
    enlaza para las apps de GTK 4. Corrige los colores de la parte de GTK 2
@@ -39,15 +42,16 @@ Hace seis pasos, que también se pueden lanzar por separado
    paso.
 5. `gnupg`: para después de copiar `~/.gnupg` a mano (de un USB, por
    ejemplo). Arregla los permisos, pone `pinentry-gtk` (en una tty cae a
-   curses solo), activa el agente SSH de gpg y añade a `sshcontrol` las
-   subclaves de autenticación. `.bashrc` ya apunta `SSH_AUTH_SOCK` al agente.
-   Si `~/.gnupg` no existe todavía, no hace nada.
+   curses solo), activa el agente SSH de gpg, añade a `sshcontrol` las
+   subclaves de autenticación y hace que recuerde la contraseña una hora.
+   `.bashrc` ya apunta `SSH_AUTH_SOCK` al agente. Si `~/.gnupg` no existe
+   todavía, no hace nada.
 6. `sistema`: copia `sistema/` en `/`, activa los servicios de runit (dbus,
    elogind, polkitd, NetworkManager, bluetoothd, acpid, chronyd, tlp,
-   automontaje, cupsd), quita dhcpcd y wpa_supplicant (NetworkManager ya gestiona la
-   red) y añade el usuario a los grupos audio, video, input, network,
-   bluetooth y lpadmin (para gestionar impresoras). Los archivos de `sudoers.d` se validan con `visudo` y se
-   instalan con modo 440.
+   automontaje, cupsd), quita dhcpcd y wpa_supplicant (NetworkManager ya
+   gestiona la red) y añade el usuario a los grupos audio, video, input,
+   network, bluetooth y lpadmin (para gestionar impresoras). Los archivos de
+   `sudoers.d` se validan con `visudo` y se instalan con modo 440.
 
 Después hay que cerrar sesión y volver a entrar (por los grupos) y lanzar
 `startx`.
@@ -149,7 +153,8 @@ y muestran una notificación.
   original más los parches. Si un parche cambia `config.def.h`, hay que pasar
   el cambio a mano a `config.h`: `make` solo lo copia si `config.h` no existe.
 - Los parches aplicados están en `suckless/<programa>/patches/`.
-  - dwm: fullgaps, restartsig, preserveonrestart, statuscmd-nosignal y swallow.
+  - dwm: fullgaps, restartsig, preserveonrestart, statuscmd-nosignal y
+    swallow.
   - st: kitty-graphics, alpha, glyph-wide-support y ligatures, en ese orden.
     kitty-graphics ya incluye anysize. glyph-wide-support y la combinación
     con ligatures vienen de la rama `graphics-with-patches` de
