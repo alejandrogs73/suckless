@@ -1,0 +1,4 @@
+# Suspender, apagar y reiniciar sin contraseña para los de wheel (solo esos
+# comandos y sin argumentos). Los usan el script bateria (suspender al
+# agotarse) y el menú de apagado (home/.local/bin/apagado).
+%wheel ALL=(root) NOPASSWD: /usr/bin/zzz "", /usr/bin/poweroff "", /usr/bin/reboot ""

@@ -136,6 +136,7 @@ static const Key keys[] = {
 	{ MODKEY|ShiftMask,             XK_l,      spawn,          {.v = lockcmd } },
 	{ MODKEY,                       XK_n,      spawn,          SHCMD("dunstctl history-pop") },
 	{ MODKEY|ShiftMask,             XK_n,      spawn,          SHCMD("dunstctl close-all") },
+	{ MODKEY|ShiftMask,             XK_Escape, spawn,          SHCMD("apagado") },
 	{ MODKEY,                       XK_b,      togglebar,      {0} },
 	{ MODKEY,                       XK_j,      focusstack,     {.i = +1 } },
 	{ MODKEY,                       XK_k,      focusstack,     {.i = -1 } },

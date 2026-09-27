@@ -1,3 +1,0 @@
-# El script bateria suspende con "sudo -n zzz" cuando la batería llega al
-# límite. Solo zzz sin argumentos, sin contraseña, para los de wheel.
-%wheel ALL=(root) NOPASSWD: /usr/bin/zzz ""

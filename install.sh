@@ -17,7 +17,7 @@ PAQUETES="
 	libXrender-devel xorgproto imlib2-devel zlib-devel libxcrypt-devel
 
 	xorg xinit setxkbmap xrandr dbus elogind polkit
-	picom dunst libnotify feh maim xclip gammastep xss-lock
+	picom dunst libnotify feh maim xclip gammastep xss-lock autorandr
 	pipewire wireplumber libspa-bluetooth alsa-pipewire rtkit pavucontrol
 	NetworkManager bluez blueman acpid chrony tlp tlp-rdw
 	font-firacode nerd-fonts-symbols-ttf papirus-icon-theme papirus-folders
@@ -80,6 +80,8 @@ enlaces() {
 
 	# Las carpetas de home/.config/user-dirs.dirs (y la de las capturas)
 	mkdir -p "$HOME/Documents" "$HOME/Downloads" "$HOME/Images/Screenshots"
+	# ssh no quiere ~/.ssh accesible para otros
+	chmod 700 "$HOME/.ssh"
 }
 
 # Compila el tema GTK Everforest (verde, oscuro, paleta medium) en ~/.themes

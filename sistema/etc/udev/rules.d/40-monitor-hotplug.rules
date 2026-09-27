@@ -1,0 +1,4 @@
+# Sustituye a la regla de autorandr (/usr/lib/udev/rules.d): al conectar o
+# desconectar una pantalla, colocarlas todas en fila ("horizontal") en vez
+# de buscar un perfil guardado llamado "default".
+ACTION=="change", SUBSYSTEM=="drm", RUN+="/usr/bin/autorandr --batch --change --default horizontal"

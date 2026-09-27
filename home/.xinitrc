@@ -18,8 +18,11 @@ fi
 export QT_QPA_PLATFORMTHEME=qt5ct
 
 # Teclado y monitores primero; el fondo se pinta después con la geometría final.
+# autorandr pone las pantallas conectadas en fila (la del portátil a la
+# izquierda); al conectar o desconectar una, lo repite solo (regla de udev en
+# sistema/) y vuelve a pintar el fondo (~/.config/autorandr/postswitch).
 setxkbmap es
-xrandr --output eDP --primary --auto --output HDMI-A-0 --mode 1280x720 --rate 60.00 --right-of eDP
+autorandr --change --default horizontal
 feh --no-fehbg --bg-fill "$HOME/.local/share/wallpaper.jpg" &
 
 pipewire &

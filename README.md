@@ -91,6 +91,7 @@ tocado.
 | Mod+Shift+l | Bloquear la pantalla con `slock` |
 | Mod+n | Volver a mostrar la última notificación (historial de dunst) |
 | Mod+Shift+n | Cerrar todas las notificaciones |
+| Mod+Shift+Escape | Menú de sesión: bloquear, suspender, salir de dwm, reiniciar o apagar (los tres últimos piden confirmación) |
 | Mod+`-` / Mod+`+` | Reducir / aumentar los gaps |
 | Mod+Shift+`+` | Gaps a 0 |
 | Tecla de subir / bajar volumen | Volumen ±5% con `wpctl` (máximo 100%) |
@@ -112,8 +113,13 @@ y muestran una notificación.
   tty no.
 - `.xinitrc` arranca también `gammastep` (luz cálida de 20:00 a 8:00, con
   transición de una hora) y `bateria` (avisa al 15 % y, en rojo, al 5 %; al
-  3 % suspende con `sudo -n zzz`, permitido sin contraseña en
-  `sistema/etc/sudoers.d/zzz`).
+  3 % suspende con `sudo -n zzz`). Suspender, apagar y reiniciar no piden
+  contraseña (`sistema/etc/sudoers.d/energia`).
+- Pantallas: `autorandr` las pone en fila (la del portátil a la izquierda y
+  como principal) al arrancar y cada vez que se conecta o desconecta una
+  (regla de udev en `sistema/`), y vuelve a pintar el fondo.
+- `~/.ssh/config` con alias: `ssh server` (10.0.0.10) y `forgejo`. Sin
+  claves: las da gpg-agent.
 - Tras 30 minutos sin tocar nada se bloquea con slock (`xss-lock`) y un
   minuto después se apaga la pantalla.
 - Memorias USB y tarjetas SD: el servicio `automontaje` (runit, como root)
