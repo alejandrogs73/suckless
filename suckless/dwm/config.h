@@ -118,6 +118,8 @@ static const StatusCmd statuscmds[] = {
 	  "3) if bluetoothctl show | grep -q 'Powered: yes'; "
 	  "then bluetoothctl power off; else bluetoothctl power on; fi >/dev/null" STATUSREFRESH " ;; "
 	  "esac", 3 },
+	/* fecha: izquierdo el calendario del mes */
+	{ "case $BUTTON in 1) calendario ;; esac", 4 },
 };
 static const char *statuscmd[] = { "/bin/sh", "-c", NULL, NULL };
 

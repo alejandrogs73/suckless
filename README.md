@@ -44,9 +44,9 @@ Hace seis pasos, que también se pueden lanzar por separado
    Si `~/.gnupg` no existe todavía, no hace nada.
 6. `sistema`: copia `sistema/` en `/`, activa los servicios de runit (dbus,
    elogind, polkitd, NetworkManager, bluetoothd, acpid, chronyd, tlp,
-   automontaje), quita dhcpcd y wpa_supplicant (NetworkManager ya gestiona la
-   red) y añade el usuario a los grupos audio, video, input, network y
-   bluetooth. Los archivos de `sudoers.d` se validan con `visudo` y se
+   automontaje, cupsd), quita dhcpcd y wpa_supplicant (NetworkManager ya gestiona la
+   red) y añade el usuario a los grupos audio, video, input, network,
+   bluetooth y lpadmin (para gestionar impresoras). Los archivos de `sudoers.d` se validan con `visudo` y se
    instalan con modo 440.
 
 Después hay que cerrar sesión y volver a entrar (por los grupos) y lanzar
@@ -118,6 +118,11 @@ y muestran una notificación.
 - Pantallas: `autorandr` las pone en fila (la del portátil a la izquierda y
   como principal) al arrancar y cada vez que se conecta o desconecta una
   (regla de udev en `sistema/`), y vuelve a pintar el fondo.
+- Clic izquierdo en la fecha de la barra: calendario del mes en una
+  notificación (`calendario`), con el día de hoy en verde.
+- bash: historial de 10 000 órdenes, sin duplicados y compartido entre
+  terminales; el prompt muestra la rama de git (`*` cambios sin añadir,
+  `+` añadidos).
 - `~/.ssh/config` con alias: `ssh server` (10.0.0.10) y `forgejo`. Sin
   claves: las da gpg-agent.
 - Tras 30 minutos sin tocar nada se bloquea con slock (`xss-lock`) y un

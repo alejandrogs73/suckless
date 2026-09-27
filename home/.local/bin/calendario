@@ -1,0 +1,21 @@
+#!/bin/sh
+# Muestra el calendario del mes en una notificación (clic en la fecha de la
+# barra de dwm), con la semana empezando en lunes y el día de hoy en verde.
+
+hoy=$(date +%-d)
+mes=$(cal -m | head -1 | sed 's/^ *//; s/ *$//')
+
+# Resaltar el número de hoy (solo en las filas de días, no en la cabecera)
+dias=$(cal -m | tail -n +2 | awk -v hoy="$hoy" '
+	NR == 1 { print; next }
+	{
+		linea = " " $0 " "
+		sub(" " hoy " ", " <b><span foreground=\"#a7c080\">" hoy "</span></b> ", linea)
+		print substr(linea, 2, length(linea) - 2)
+	}')
+
+# Primera letra del mes en mayúscula ("septiembre 2026" -> "Septiembre 2026")
+mes=$(printf %s "$mes" | sed 's/^./\U&/')
+
+notify-send -t 10000 -h string:x-dunst-stack-tag:calendario \
+	-i x-office-calendar "$mes" "$dias"

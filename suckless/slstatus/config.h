@@ -38,8 +38,8 @@ red(const char *unused)
 }
 
 /*
- * Los bytes \001, \002 y \003 delimitan las zonas clicables de la barra
- * (parche statuscmd de dwm): la red, el volumen y el bluetooth. Lo que hace
+ * Los bytes \001 a \004 delimitan las zonas clicables de la barra
+ * (parche statuscmd de dwm): la red, el volumen, el bluetooth y la fecha. Lo que hace
  * cada clic está en statuscmds, en el config.h de dwm.
  */
 static const struct arg args[] = {
@@ -55,5 +55,5 @@ static const struct arg args[] = {
 	/* OFF si el adaptador está apagado; si no, el primer dispositivo conectado */
 	{ run_command,      "\003[ BT: %s ]\003 ",        "bluetoothctl show | grep -q 'Powered: yes' || { echo OFF; exit; }; "
 	                                                  "bluetoothctl devices Connected | head -1 | cut -d' ' -f3-" },
-	{ datetime,         "[ %s ]",                     "%d/%m/%y %H:%M" },
+	{ datetime,         "\004[ %s ]\004",            "%d/%m/%y %H:%M" },
 };

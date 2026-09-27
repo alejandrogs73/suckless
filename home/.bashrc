@@ -25,8 +25,25 @@ YELLOW='\[\e[0;33m\]'
 BLUE='\[\e[0;34m\]'
 NC='\[\e[0m\]' # Sin color
 
-# Formato: usuario@maquina:~/directorio$ (en colores)
-PS1="${GREEN}\u@\h${NC}:${BLUE}\w${NC}\$ "
+# Rama de git (con * si hay cambios sin añadir y + si hay cambios añadidos)
+if [ -f /usr/share/git/git-prompt.sh ]; then
+    . /usr/share/git/git-prompt.sh
+    GIT_PS1_SHOWDIRTYSTATE=1
+else
+    __git_ps1() { :; }
+fi
+
+# Formato: usuario@maquina:~/directorio (rama)$ (en colores)
+PS1="${GREEN}\u@\h${NC}:${BLUE}\w${YELLOW}\$(__git_ps1 ' (%s)')${NC}\$ "
+
+# --- Historial ---
+# Grande, sin duplicados y compartido entre terminales: cada orden se guarda
+# al momento y cada prompt lee las de las otras terminales.
+HISTSIZE=10000
+HISTFILESIZE=20000
+HISTCONTROL=ignoreboth:erasedups
+shopt -s histappend
+PROMPT_COMMAND="history -a; history -n${PROMPT_COMMAND:+; $PROMPT_COMMAND}"
 
 # --- 3. Aliases Base (Comodidad y Seguridad) ---
 alias ls='ls --color=auto'

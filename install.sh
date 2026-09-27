@@ -20,6 +20,7 @@ PAQUETES="
 	picom dunst libnotify feh maim xclip gammastep xss-lock autorandr
 	pipewire wireplumber libspa-bluetooth alsa-pipewire rtkit pavucontrol
 	NetworkManager bluez blueman acpid chrony tlp tlp-rdw
+	cups cups-filters hplip
 	font-firacode nerd-fonts-symbols-ttf papirus-icon-theme papirus-folders
 	sassc gtk-engine-murrine gnome-themes-extra qt5ct qt6ct
 
@@ -32,10 +33,10 @@ SUCKLESS="dwm st dmenu slstatus slock scroll clipmenu"
 # Tema GTK Everforest, en una versión fija para que siempre salga igual
 GTK_TEMA_REPO=https://github.com/Fausto-Korpsvart/Everforest-GTK-Theme
 GTK_TEMA_COMMIT=9b8be4d6648ae9eaae3dd550105081f8c9054825
-SERVICIOS="dbus elogind polkitd NetworkManager bluetoothd acpid chronyd tlp automontaje"
+SERVICIOS="dbus elogind polkitd NetworkManager bluetoothd acpid chronyd tlp automontaje cupsd"
 # NetworkManager gestiona la red él solo; estos servicios se pelean con él.
 SERVICIOS_FUERA="dhcpcd wpa_supplicant"
-GRUPOS="audio video input network bluetooth"
+GRUPOS="audio video input network bluetooth lpadmin"
 
 msg() { printf '\033[1;32m==>\033[0m %s\n' "$*"; }
 die() { printf '\033[1;31merror:\033[0m %s\n' "$*" >&2; exit 1; }
