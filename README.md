@@ -20,7 +20,7 @@ En un Void recién instalado, como tu usuario (pide sudo cuando hace falta):
     git clone ssh://forgejo@ssh.alejandrogs.es/alejandrogs73/suckless.git ~/suckless
     cd ~/suckless && ./install.sh
 
-Hace cinco pasos, que también se pueden lanzar por separado
+Hace seis pasos, que también se pueden lanzar por separado
 (`./install.sh enlaces`, por ejemplo) y repetir sin problema:
 
 1. `paquetes`: instala con xbps todo lo que usa la configuración.
@@ -28,12 +28,19 @@ Hace cinco pasos, que también se pueden lanzar por separado
 3. `enlaces`: enlaza cada archivo de `home/` en `~`. Si ya existía un archivo
    distinto, lo guarda como `.bak`. Como son enlaces, editar `~/.bashrc` es
    editar el repo.
-4. `gnupg`: para después de copiar `~/.gnupg` a mano (de un USB, por
+4. `gtk`: compila el tema [Everforest GTK](https://github.com/Fausto-Korpsvart/Everforest-GTK-Theme)
+   (verde, oscuro, paleta medium) en `~/.themes`, en una versión fija, y lo
+   enlaza para las apps de GTK 4. Corrige los colores de la parte de GTK 2
+   (el tema trae los de Gruvbox) y pone verdes las carpetas de Papirus. Los
+   iconos son Papirus-Dark en todo. Si una actualización de
+   `papirus-icon-theme` devuelve las carpetas a azul, basta con repetir este
+   paso.
+5. `gnupg`: para después de copiar `~/.gnupg` a mano (de un USB, por
    ejemplo). Arregla los permisos, pone `pinentry-gtk` (en una tty cae a
    curses solo), activa el agente SSH de gpg y añade a `sshcontrol` las
    subclaves de autenticación. `.bashrc` ya apunta `SSH_AUTH_SOCK` al agente.
    Si `~/.gnupg` no existe todavía, no hace nada.
-5. `sistema`: copia `sistema/` en `/`, activa los servicios de runit (dbus,
+6. `sistema`: copia `sistema/` en `/`, activa los servicios de runit (dbus,
    elogind, polkitd, NetworkManager, bluetoothd, acpid, chronyd), quita
    dhcpcd y wpa_supplicant (NetworkManager ya gestiona la red) y añade el
    usuario a los grupos audio, video, input, network y bluetooth.

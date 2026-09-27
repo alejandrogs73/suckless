@@ -2,8 +2,8 @@
 # Deja un Void Linux recién instalado con este escritorio: paquetes, programas
 # de suckless, enlaces de la configuración en ~ y archivos de sistema.
 #
-# Uso: ./install.sh [paquetes] [suckless] [enlaces] [gnupg] [sistema]
-# Sin argumentos hace los cinco pasos, en ese orden. Se ejecuta como el
+# Uso: ./install.sh [paquetes] [suckless] [enlaces] [gtk] [gnupg] [sistema]
+# Sin argumentos hace los seis pasos, en ese orden. Se ejecuta como el
 # usuario normal; pide sudo cuando hace falta. Se puede repetir sin problema.
 
 set -eu
@@ -20,7 +20,8 @@ PAQUETES="
 	picom dunst libnotify feh maim xclip
 	pipewire wireplumber libspa-bluetooth alsa-pipewire rtkit pavucontrol
 	NetworkManager bluez blueman acpid chrony
-	font-firacode nerd-fonts-symbols-ttf papirus-icon-theme
+	font-firacode nerd-fonts-symbols-ttf papirus-icon-theme papirus-folders
+	sassc gtk-engine-murrine gnome-themes-extra
 
 	gnupg pinentry-gtk
 	firefox thunderbird neovim git fuse-sshfs unzip
@@ -28,6 +29,9 @@ PAQUETES="
 "
 
 SUCKLESS="dwm st dmenu slstatus slock scroll clipmenu"
+# Tema GTK Everforest, en una versión fija para que siempre salga igual
+GTK_TEMA_REPO=https://github.com/Fausto-Korpsvart/Everforest-GTK-Theme
+GTK_TEMA_COMMIT=9b8be4d6648ae9eaae3dd550105081f8c9054825
 SERVICIOS="dbus elogind polkitd NetworkManager bluetoothd acpid chronyd"
 # NetworkManager gestiona la red él solo; estos servicios se pelean con él.
 SERVICIOS_FUERA="dhcpcd wpa_supplicant"
@@ -73,6 +77,35 @@ enlaces() {
 		echo "  $f"
 	done
 	cd "$DIR"
+}
+
+# Compila el tema GTK Everforest (verde, oscuro, paleta medium) en ~/.themes
+# y lo enlaza para las apps de GTK 4. Qué tema e iconos se usan lo dicen
+# home/.gtkrc-2.0 y home/.config/gtk-*/settings.ini. Las carpetas de Papirus
+# se ponen verdes; una actualización de papirus-icon-theme las devuelve a
+# azul, y basta con repetir este paso.
+gtk() {
+	msg "Compilando el tema GTK Everforest"
+	tmp=$(mktemp -d)
+	git clone -q "$GTK_TEMA_REPO" "$tmp"
+	git -C "$tmp" checkout -q "$GTK_TEMA_COMMIT"
+	"$tmp/themes/install.sh" -t green -c dark --tweaks medium -l >/dev/null
+	rm -rf "$tmp"
+
+	# La plantilla de GTK 2 del tema trae los colores de Gruvbox (fallo del
+	# tema original): se cambian por Everforest medium. pinentry-gtk es GTK 2.
+	sed -i \
+		-e 's|^gtk-color-scheme = "text_color:.*|gtk-color-scheme = "text_color:#d3c6aa\\nbase_color:#2d353b"|' \
+		-e 's|^gtk-color-scheme = "fg_color:.*|gtk-color-scheme = "fg_color:#d3c6aa\\nbg_color:#2d353b"|' \
+		-e 's|^gtk-color-scheme = "selected_fg_color:.*|gtk-color-scheme = "selected_fg_color:#2d353b\\nselected_bg_color:#a7c080"|' \
+		-e 's|^gtk-color-scheme = "titlebar_fg_color:.*|gtk-color-scheme = "titlebar_fg_color:#d3c6aa\\ntitlebar_bg_color:#2d353b"|' \
+		-e 's|^gtk-color-scheme = "menu_color:.*|gtk-color-scheme = "menu_color:#343f44"|' \
+		-e 's|^gtk-color-scheme = "tooltip_fg_color:.*|gtk-color-scheme = "tooltip_fg_color:#d3c6aa\\ntooltip_bg_color:#3d484d"|' \
+		-e 's|^gtk-color-scheme = "link_color:.*|gtk-color-scheme = "link_color:#7fbbb3\\nvisited_link_color:#d699b6"|' \
+		"$HOME/.themes/Everforest-Green-Dark-Medium/gtk-2.0/gtkrc"
+
+	msg "Carpetas de Papirus en verde"
+	sudo papirus-folders -C green --theme Papirus-Dark >/dev/null
 }
 
 # ~/.gnupg se copia a mano (de un USB, por ejemplo). Deja los permisos como
@@ -150,10 +183,10 @@ sistema() {
 	die "esto es solo para Void Linux"
 [ "$(id -u)" -ne 0 ] || die "ejecútalo como tu usuario, no como root"
 
-[ $# -gt 0 ] || set -- paquetes suckless enlaces gnupg sistema
+[ $# -gt 0 ] || set -- paquetes suckless enlaces gtk gnupg sistema
 for paso; do
 	case $paso in
-	paquetes|suckless|enlaces|gnupg|sistema) "$paso" ;;
+	paquetes|suckless|enlaces|gtk|gnupg|sistema) "$paso" ;;
 	*) die "paso desconocido: $paso" ;;
 	esac
 done

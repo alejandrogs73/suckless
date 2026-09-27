@@ -42,6 +42,7 @@ static const Rule rules[] = {
 	{ "Gimp",         NULL,              NULL,           0,         1,          0,          0,         -1 },
 	{ NULL,           "pavucontrol",     NULL,           0,         1,          0,          0,         -1 },
 	{ NULL,           "blueman-manager", NULL,           0,         1,          0,          0,         -1 },
+	{ "Pinentry-gtk-2", NULL,            NULL,           0,         1,          0,          1,         -1 }, /* contraseña de gpg/ssh */
 	{ "Firefox",      "Places",          NULL,           0,         1,          0,          0,         -1 }, /* biblioteca/descargas */
 	{ "Firefox",      "Toolkit",         NULL,           0,         1,          0,          0,         -1 }, /* picture-in-picture */
 	{ NULL,           NULL,              "Event Tester", 0,         0,          0,          1,         -1 }, /* xev */
