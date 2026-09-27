@@ -121,9 +121,9 @@ static const StatusCmd statuscmds[] = {
 };
 static const char *statuscmd[] = { "/bin/sh", "-c", NULL, NULL };
 
-/* Capturas: se guardan en ~/Imágenes/Capturas y se copian al portapapeles */
+/* Capturas: se guardan en ~/Images/Screenshots y se copian al portapapeles */
 #define SCREENSHOT(opts) SHCMD( \
-	"d=\"$HOME/Imágenes/Capturas\"; mkdir -p \"$d\"; " \
+	"d=\"$HOME/Images/Screenshots\"; mkdir -p \"$d\"; " \
 	"f=\"$d/$(date +%Y-%m-%d_%H-%M-%S).png\"; " \
 	"maim " opts " \"$f\" && xclip -selection clipboard -t image/png -i \"$f\" " \
 	"&& notify-send -i \"$f\" 'Captura guardada' \"$f\"")
@@ -134,6 +134,8 @@ static const Key keys[] = {
 	{ MODKEY,                       XK_Return, spawn,          {.v = termcmd } },
 	{ MODKEY,                       XK_v,      spawn,          {.v = clipcmd } },
 	{ MODKEY|ShiftMask,             XK_l,      spawn,          {.v = lockcmd } },
+	{ MODKEY,                       XK_n,      spawn,          SHCMD("dunstctl history-pop") },
+	{ MODKEY|ShiftMask,             XK_n,      spawn,          SHCMD("dunstctl close-all") },
 	{ MODKEY,                       XK_b,      togglebar,      {0} },
 	{ MODKEY,                       XK_j,      focusstack,     {.i = +1 } },
 	{ MODKEY,                       XK_k,      focusstack,     {.i = -1 } },

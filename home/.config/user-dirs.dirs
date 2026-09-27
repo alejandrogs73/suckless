@@ -1,0 +1,10 @@
+# Carpetas del usuario (las usan Firefox, los diálogos de GTK...). En inglés
+# y sin tildes; las que no se usan apuntan a $HOME. install.sh las crea.
+XDG_DESKTOP_DIR="$HOME"
+XDG_DOCUMENTS_DIR="$HOME/Documents"
+XDG_DOWNLOAD_DIR="$HOME/Downloads"
+XDG_PICTURES_DIR="$HOME/Images"
+XDG_MUSIC_DIR="$HOME"
+XDG_VIDEOS_DIR="$HOME"
+XDG_TEMPLATES_DIR="$HOME"
+XDG_PUBLICSHARE_DIR="$HOME"

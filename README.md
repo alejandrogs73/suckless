@@ -87,6 +87,8 @@ tocado.
 |---|---|
 | Mod+v | clipmenu (misma paleta y fuente que dmenu) |
 | Mod+Shift+l | Bloquear la pantalla con `slock` |
+| Mod+n | Volver a mostrar la última notificación (historial de dunst) |
+| Mod+Shift+n | Cerrar todas las notificaciones |
 | Mod+`-` / Mod+`+` | Reducir / aumentar los gaps |
 | Mod+Shift+`+` | Gaps a 0 |
 | Tecla de subir / bajar volumen | Volumen ±5% con `wpctl` (máximo 100%) |
@@ -99,8 +101,17 @@ Las teclas de audio (y los clics en VOL de la barra) usan el script `volumen`
 (`home/.local/bin/volumen`): cambia el volumen con `wpctl`, refresca slstatus
 y muestra una notificación con el nivel.
 
-Las capturas se guardan en `~/Imágenes/Capturas`, se copian al portapapeles y
-muestran una notificación.
+Las capturas se guardan en `~/Images/Screenshots`, se copian al portapapeles
+y muestran una notificación.
+
+## Sesión
+
+- Al entrar en tty1 se lanza `startx` solo (`.bash_profile`); en las demás
+  tty no.
+- `.xinitrc` arranca también `gammastep` (luz cálida de 20:00 a 8:00, con
+  transición de una hora) y `bateria` (avisa al 15 % y, en rojo, al 5 %).
+- Carpetas del usuario en inglés y sin tildes (`user-dirs.dirs`):
+  Documents, Downloads e Images.
 
 ## Notas
 

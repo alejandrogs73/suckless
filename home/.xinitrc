@@ -31,5 +31,7 @@ picom &
 blueman-applet &
 slstatus &
 clipmenud &
+gammastep &
+bateria &
 
 exec dwm

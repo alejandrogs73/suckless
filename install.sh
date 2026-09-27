@@ -17,7 +17,7 @@ PAQUETES="
 	libXrender-devel xorgproto imlib2-devel zlib-devel libxcrypt-devel
 
 	xorg xinit setxkbmap xrandr dbus elogind polkit
-	picom dunst libnotify feh maim xclip
+	picom dunst libnotify feh maim xclip gammastep
 	pipewire wireplumber libspa-bluetooth alsa-pipewire rtkit pavucontrol
 	NetworkManager bluez blueman acpid chrony
 	font-firacode nerd-fonts-symbols-ttf papirus-icon-theme papirus-folders
@@ -77,6 +77,9 @@ enlaces() {
 		echo "  $f"
 	done
 	cd "$DIR"
+
+	# Las carpetas de home/.config/user-dirs.dirs (y la de las capturas)
+	mkdir -p "$HOME/Documents" "$HOME/Downloads" "$HOME/Images/Screenshots"
 }
 
 # Compila el tema GTK Everforest (verde, oscuro, paleta medium) en ~/.themes
@@ -127,9 +130,12 @@ gnupg() {
 	conf="$g/gpg-agent.conf"
 	touch "$conf"
 	chmod 600 "$conf"
-	sed -i '/^pinentry-program/d' "$conf"
+	sed -i '/^pinentry-program/d; /^default-cache-ttl/d' "$conf"
 	echo "pinentry-program /usr/bin/pinentry-gtk-2" >>"$conf"
 	grep -qx enable-ssh-support "$conf" || echo enable-ssh-support >>"$conf"
+	# Recordar la contraseña una hora desde el último uso (por defecto, 10 min)
+	echo "default-cache-ttl 3600" >>"$conf"
+	echo "default-cache-ttl-ssh 3600" >>"$conf"
 
 	# sshcontrol dice qué claves usa el agente para SSH: se añaden las
 	# subclaves de autenticación [A] que falten.

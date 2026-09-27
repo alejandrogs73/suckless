@@ -1,0 +1,31 @@
+#!/bin/sh
+# Avisa con una notificación cuando la batería baja del 15 % y del 5 %
+# mientras se descarga (una vez por umbral; al enchufar el cargador se
+# reinicia). Se lanza desde .xinitrc y se queda comprobando cada minuto.
+
+BAJA=15
+CRITICA=5
+
+bat=
+for b in /sys/class/power_supply/BAT*; do
+	[ -e "$b/capacity" ] && bat=$b && break
+done
+[ -n "$bat" ] || exit 0
+
+avisado=100
+while :; do
+	nivel=$(cat "$bat/capacity")
+	estado=$(cat "$bat/status")
+	if [ "$estado" != Discharging ]; then
+		avisado=100
+	elif [ "$nivel" -le "$CRITICA" ] && [ "$avisado" -gt "$CRITICA" ]; then
+		notify-send -u critical -h string:x-dunst-stack-tag:bateria \
+			-i battery-empty "Batería crítica" "Queda un $nivel %: enchufa el cargador ya"
+		avisado=$CRITICA
+	elif [ "$nivel" -le "$BAJA" ] && [ "$avisado" -gt "$BAJA" ]; then
+		notify-send -h string:x-dunst-stack-tag:bateria \
+			-i battery-caution "Batería baja" "Queda un $nivel %"
+		avisado=$BAJA
+	fi
+	sleep 60
+done
