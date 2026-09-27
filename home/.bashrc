@@ -5,14 +5,9 @@
 # --- 1. Entorno y Rutas ---
 # Priorizar binarios locales y scripts de usuario
 export PATH="$HOME/.local/bin:/usr/local/bin:$PATH"
-export PATH="$HOME/.config/emacs/bin:$PATH"
-export PATH=$PATH:$HOME/.local/share/flatpak/exports/bin
-export XDG_DATA_DIRS=$HOME/.local/share/flatpak/exports/share:$XDG_DATA_DIRS
 export SSH_AUTH_SOCK=$(gpgconf --list-dirs agent-ssh-socket)
 export GPG_TTY=$(tty)
 gpg-connect-agent updatestartuptty /bye >/dev/null 2>&1
-
-
 
 # Cargar Nix (Asegura que los comandos de Nix funcionen si entras sin X11)
 if [ -e /etc/profile.d/nix.sh ]; then 
@@ -33,7 +28,6 @@ NC='\[\e[0m\]' # Sin color
 # Formato: usuario@maquina:~/directorio$ (en colores)
 PS1="${GREEN}\u@\h${NC}:${BLUE}\w${NC}\$ "
 
-
 # --- 3. Aliases Base (Comodidad y Seguridad) ---
 alias ls='ls --color=auto'
 alias ll='ls -lh'      # Lista detallada humana
@@ -48,7 +42,6 @@ alias rm='rm -i'
 alias cp='cp -i'
 alias mv='mv -i'
 
-
 # --- 4. Aliases para Void Linux (xbps) ---
 # Te ahorrarán teclear 'xbps-lo-que-sea' 40 veces al día
 alias xi='sudo xbps-install'        # Instalar paquete
@@ -57,10 +50,7 @@ alias xq='xbps-query -Rs'           # Buscar paquete en el repositorio
 alias xl='xbps-query -l'            # Listar paquetes instalados
 alias xr='sudo xbps-remove -R'      # Eliminar paquete y sus huérfanos
 
-alias data='sshfs alejandro@10.0.0.10:/var/storage/PUBLIC ~/DATA/'
 alias esp32='sudo chmod a+rw /dev/ttyUSB0'
-alias factorio='~/Games/Factorio_Linux/factorio/bin/x64/factorio'
-alias cstrike=' ~/Games/HLCS/cstrike.sh'
 
 # --- 5. Funciones Útiles ---
 
@@ -86,14 +76,6 @@ ex() {
         echo "'$1' no es un archivo válido"
     fi
 }
-
-# opencode
-export PATH=/home/alejandro/.opencode/bin:$PATH
-
-
-# Added by Antigravity CLI installer
-export PATH="/home/alejandro/.local/bin:$PATH"
-export PATH="$PATH:$HOME/.local/share/flatpak/exports/bin"
 
 # Forzar IPv4 en Nix (IPv6 del sistema está roto)
 export NIX_CURL_FLAGS=-4
