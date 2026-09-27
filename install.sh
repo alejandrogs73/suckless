@@ -20,7 +20,7 @@ PAQUETES="
 	picom dunst libnotify feh maim xclip
 	pipewire wireplumber libspa-bluetooth alsa-pipewire pavucontrol
 	NetworkManager bluez blueman acpid chrony
-	font-firacode nerd-fonts-symbols-ttf
+	font-firacode nerd-fonts-symbols-ttf papirus-icon-theme
 
 	gnupg pinentry-gtk
 	firefox thunderbird neovim git fuse-sshfs unzip
