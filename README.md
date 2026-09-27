@@ -86,6 +86,10 @@ tocado.
 | Impr Pant | Captura de pantalla completa con `maim` |
 | Shift+Impr Pant | Captura de una región |
 
+Las teclas de audio (y los clics en VOL de la barra) usan el script `volumen`
+(`home/.local/bin/volumen`): cambia el volumen con `wpctl`, refresca slstatus
+y muestra una notificación con el nivel.
+
 Las capturas se guardan en `~/Imágenes/Capturas`, se copian al portapapeles y
 muestran una notificación.
 

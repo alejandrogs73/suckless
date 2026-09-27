@@ -18,7 +18,7 @@ PAQUETES="
 
 	xorg xinit setxkbmap xrandr dbus elogind polkit
 	picom dunst libnotify feh maim xclip
-	pipewire wireplumber libspa-bluetooth alsa-pipewire pavucontrol
+	pipewire wireplumber libspa-bluetooth alsa-pipewire rtkit pavucontrol
 	NetworkManager bluez blueman acpid chrony
 	font-firacode nerd-fonts-symbols-ttf papirus-icon-theme
 

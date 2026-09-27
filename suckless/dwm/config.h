@@ -79,12 +79,14 @@ static const char *termcmd[]  = { "st", NULL };
 static const char *clipcmd[]  = { "clipmenu", "-fn", dmenufont, "-nb", col_bg, "-nf", col_fg, "-sb", col_accent, "-sf", col_accent_fg, NULL };
 static const char *lockcmd[]  = { "slock", NULL };
 
-/* Audio: tras cada cambio se avisa a slstatus (SIGUSR1) para que refresque la barra al momento */
+/* Tras cambiar algo de la barra se avisa a slstatus (SIGUSR1) para que la refresque al momento */
 #define STATUSREFRESH "; pkill -USR1 -x slstatus"
-#define VOLUPCMD   "wpctl set-volume -l 1.0 @DEFAULT_AUDIO_SINK@ 5%+" STATUSREFRESH
-#define VOLDOWNCMD "wpctl set-volume @DEFAULT_AUDIO_SINK@ 5%-" STATUSREFRESH
-#define VOLMUTECMD "wpctl set-mute @DEFAULT_AUDIO_SINK@ toggle" STATUSREFRESH
-#define MICMUTECMD "wpctl set-mute @DEFAULT_AUDIO_SOURCE@ toggle" STATUSREFRESH
+/* Audio: el script volumen (home/.local/bin) cambia el volumen con wpctl,
+ * refresca slstatus y lo muestra en una notificación */
+#define VOLUPCMD   "volumen subir"
+#define VOLDOWNCMD "volumen bajar"
+#define VOLMUTECMD "volumen silenciar"
+#define MICMUTECMD "volumen micro"
 #define VOLUP      SHCMD(VOLUPCMD)
 #define VOLDOWN    SHCMD(VOLDOWNCMD)
 #define VOLMUTE    SHCMD(VOLMUTECMD)

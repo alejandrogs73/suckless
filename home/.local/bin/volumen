@@ -1,0 +1,41 @@
+#!/bin/sh
+# Cambia el volumen o silencia la salida o el micro (PipeWire), refresca
+# slstatus y lo muestra en una notificación que se sustituye a sí misma.
+# Uso: volumen subir|bajar|silenciar|micro
+
+case $1 in
+subir)     wpctl set-volume -l 1.0 @DEFAULT_AUDIO_SINK@ 5%+ ;;
+bajar)     wpctl set-volume @DEFAULT_AUDIO_SINK@ 5%- ;;
+silenciar) wpctl set-mute @DEFAULT_AUDIO_SINK@ toggle ;;
+micro)     wpctl set-mute @DEFAULT_AUDIO_SOURCE@ toggle ;;
+*)         echo "uso: volumen subir|bajar|silenciar|micro" >&2; exit 1 ;;
+esac
+
+pkill -USR1 -x slstatus
+
+if [ "$1" = micro ]; then
+	if wpctl get-volume @DEFAULT_AUDIO_SOURCE@ | grep -q MUTED; then
+		icono=microphone-sensitivity-muted texto="Silenciado"
+	else
+		icono=microphone-sensitivity-high texto="Activado"
+	fi
+	exec notify-send -t 2000 -h string:x-dunst-stack-tag:micro \
+		-i "$icono" "Micrófono" "$texto"
+fi
+
+# wpctl get-volume da algo como "Volume: 0.35 [MUTED]"
+estado=$(wpctl get-volume @DEFAULT_AUDIO_SINK@)
+vol=$(echo "$estado" | awk '{ printf "%d", $2 * 100 + 0.5 }')
+case $estado in
+*MUTED*) icono=audio-volume-muted texto="Silenciado" ;;
+*)
+	if [ "$vol" -eq 0 ]; then icono=audio-volume-muted
+	elif [ "$vol" -lt 34 ]; then icono=audio-volume-low
+	elif [ "$vol" -lt 67 ]; then icono=audio-volume-medium
+	else icono=audio-volume-high
+	fi
+	texto="$vol %"
+	;;
+esac
+exec notify-send -t 2000 -h string:x-dunst-stack-tag:volumen \
+	-h "int:value:$vol" -i "$icono" "Volumen" "$texto"
