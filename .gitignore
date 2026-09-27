@@ -2,20 +2,20 @@
 *.o
 
 # Binarios finales
-dwm/dwm
-st/st
-scroll/scroll
-scroll/ptty
-dmenu/dmenu
-dmenu/stest
-slstatus/slstatus
-slock/slock
-clipmenu/src/clipmenu
-clipmenu/src/clipmenud
-clipmenu/src/clipdel
-clipmenu/src/clipdelmenu
-clipmenu/src/clipctl
-clipmenu/src/clipserve
+suckless/dwm/dwm
+suckless/st/st
+suckless/scroll/scroll
+suckless/scroll/ptty
+suckless/dmenu/dmenu
+suckless/dmenu/stest
+suckless/slstatus/slstatus
+suckless/slock/slock
+suckless/clipmenu/src/clipmenu
+suckless/clipmenu/src/clipmenud
+suckless/clipmenu/src/clipdel
+suckless/clipmenu/src/clipdelmenu
+suckless/clipmenu/src/clipctl
+suckless/clipmenu/src/clipserve
 
 # Restos de parches
 *.orig
