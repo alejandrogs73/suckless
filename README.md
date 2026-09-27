@@ -32,7 +32,9 @@ Hace seis pasos, que también se pueden lanzar por separado
    (verde, oscuro, paleta medium) en `~/.themes`, en una versión fija, y lo
    enlaza para las apps de GTK 4. Corrige los colores de la parte de GTK 2
    (el tema trae los de Gruvbox) y pone verdes las carpetas de Papirus. Los
-   iconos son Papirus-Dark en todo. Si una actualización de
+   iconos son Papirus-Dark en todo. Las apps Qt 5 y Qt 6 usan qt5ct/qt6ct
+   (`QT_QPA_PLATFORMTHEME` en `.xinitrc`) con el estilo Fusion y una paleta
+   Everforest (`home/.config/qt*ct/`). Si una actualización de
    `papirus-icon-theme` devuelve las carpetas a azul, basta con repetir este
    paso.
 5. `gnupg`: para después de copiar `~/.gnupg` a mano (de un USB, por

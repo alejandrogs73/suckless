@@ -21,7 +21,7 @@ PAQUETES="
 	pipewire wireplumber libspa-bluetooth alsa-pipewire rtkit pavucontrol
 	NetworkManager bluez blueman acpid chrony
 	font-firacode nerd-fonts-symbols-ttf papirus-icon-theme papirus-folders
-	sassc gtk-engine-murrine gnome-themes-extra
+	sassc gtk-engine-murrine gnome-themes-extra qt5ct qt6ct
 
 	gnupg pinentry-gtk
 	firefox thunderbird neovim git fuse-sshfs unzip

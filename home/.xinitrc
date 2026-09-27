@@ -13,6 +13,10 @@ if [ -z "$DBUS_SESSION_BUS_ADDRESS" ]; then
 	exec dbus-run-session -- sh "$HOME/.xinitrc"
 fi
 
+# Apps Qt con el tema de qt5ct/qt6ct (Everforest, Papirus). El plugin de
+# qt6ct también responde a "qt5ct", así que vale para Qt 5 y Qt 6.
+export QT_QPA_PLATFORMTHEME=qt5ct
+
 # Teclado y monitores primero; el fondo se pinta después con la geometría final.
 setxkbmap es
 xrandr --output eDP --primary --auto --output HDMI-A-0 --mode 1280x720 --rate 60.00 --right-of eDP
