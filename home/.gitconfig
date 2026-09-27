@@ -1,3 +1,35 @@
 [user]
 	name = alejandrogs73
 	email = mail@alejandrogs.es
+	# Huella de la clave GPG (es pública). Caduca el 2027-12-12.
+	signingkey = 3C25DE5B275CA525960E7DFD1CFF10953BEE333C
+[init]
+	defaultBranch = master
+[commit]
+	gpgSign = true
+[tag]
+	gpgSign = true
+[pull]
+	# Sin commits de merge al hacer pull: los cambios locales van encima
+	rebase = true
+[rebase]
+	autoStash = true
+[push]
+	# El primer push de una rama nueva crea la rama remota
+	autoSetupRemote = true
+[fetch]
+	prune = true
+[diff]
+	algorithm = histogram
+	colorMoved = default
+[merge]
+	# Los conflictos muestran también cómo era el original
+	conflictStyle = zdiff3
+[rerere]
+	# Recordar cómo se resolvió un conflicto y repetirlo
+	enabled = true
+[branch]
+	sort = -committerdate
+[alias]
+	lg = log --graph --oneline --decorate --all
+	st = status -sb
