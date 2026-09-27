@@ -123,8 +123,16 @@ y muestran una notificación.
 - bash: historial de 10 000 órdenes, sin duplicados y compartido entre
   terminales; el prompt muestra la rama de git (`*` cambios sin añadir,
   `+` añadidos).
-- `~/.ssh/config` con alias: `ssh server` (10.0.0.10) y `forgejo`. Sin
-  claves: las da gpg-agent.
+- `~/.ssh/config` con alias: `ssh server` y `forgejo`, los dos por el
+  dominio para que funcionen dentro y fuera de casa. Sin claves: las da
+  gpg-agent.
+- Copia de los marcadores de Firefox (`marcadores`, desde `.xinitrc`): sube
+  una vez al día al servidor la copia que Firefox ya hace sola
+  (`bookmarkbackups/*.jsonlz4`), a `/var/storage/PUBLIC/backup_void/marcadores`:
+  `diario/` guarda 7 días y `semanal/` una por semana, todas. Solo lo intenta
+  con la clave SSH desbloqueada (para no sacar pinentry) y lo reintenta cada
+  hora. `marcadores ya` la sube en el momento. Para restaurar: Firefox >
+  Marcadores > Administrar marcadores > Importar y respaldar > Restaurar.
 - Tras 30 minutos sin tocar nada se bloquea con slock (`xss-lock`) y un
   minuto después se apaga la pantalla.
 - Memorias USB y tarjetas SD: el servicio `automontaje` (runit, como root)

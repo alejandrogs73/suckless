@@ -1,0 +1,57 @@
+#!/bin/sh
+# Copia de seguridad de los marcadores de Firefox en el servidor.
+#
+# Firefox ya guarda cada día una copia en el perfil (bookmarkbackups/*.jsonlz4)
+# y se restaura desde Marcadores > Administrar marcadores > Importar y
+# respaldar > Restaurar > Elegir archivo. Este script sube la más reciente:
+#   diario/   una al día, se guardan las de los últimos 7 días
+#   semanal/  la primera de cada semana, se guardan todas
+#
+# Se lanza desde .xinitrc y lo intenta cada hora hasta conseguirlo ese día.
+# Solo lo intenta si la clave SSH de gpg-agent ya está desbloqueada, para no
+# sacar pinentry al arrancar la sesión. "marcadores ya" lo sube en el momento.
+
+HOST=server
+DESTINO=/var/storage/PUBLIC/backup_void/marcadores
+MARCA=${XDG_CACHE_HOME:-$HOME/.cache}/marcadores-subidos
+
+# ¿Está desbloqueada la clave SSH? (7.º campo de KEYINFO: 1 = en caché)
+desbloqueada() {
+	kg=$(grep -v '^#' "$HOME/.gnupg/sshcontrol" 2>/dev/null | awk 'NR == 1 { print $1 }')
+	[ -n "$kg" ] &&
+		gpg-connect-agent "keyinfo $kg" /bye 2>/dev/null | awk '$1 == "S" { exit $7 != 1 }'
+}
+
+subir() {
+	dir=$HOME/.config/mozilla/firefox
+	perfil=$(sed -n 's/^Default=//p' "$dir/installs.ini" 2>/dev/null | head -1)
+	[ -n "$perfil" ] || return 1
+	# Los nombres llevan la fecha: la última del orden alfabético es la más nueva
+	ultima=
+	for f in "$dir/$perfil"/bookmarkbackups/bookmarks-*.jsonlz4; do
+		[ -e "$f" ] && ultima=$f
+	done
+	[ -n "$ultima" ] || return 1
+
+	hoy=$(date +%F)
+	semana=$(date +%G-W%V)
+	ssh -T -o BatchMode=yes -o ConnectTimeout=10 "$HOST" "
+		set -e
+		mkdir -p '$DESTINO/diario' '$DESTINO/semanal'
+		cat > '$DESTINO/diario/marcadores-$hoy.jsonlz4'
+		cp -n '$DESTINO/diario/marcadores-$hoy.jsonlz4' '$DESTINO/semanal/marcadores-$semana.jsonlz4'
+		find '$DESTINO/diario' -name 'marcadores-*.jsonlz4' -mtime +6 -delete
+	" <"$ultima"
+}
+
+if [ "$1" = ya ]; then
+	subir && date +%F >"$MARCA" && echo "Marcadores subidos a $HOST:$DESTINO"
+	exit
+fi
+
+while :; do
+	if [ "$(cat "$MARCA" 2>/dev/null)" != "$(date +%F)" ] && desbloqueada && subir; then
+		date +%F >"$MARCA"
+	fi
+	sleep 3600
+done
