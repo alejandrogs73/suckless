@@ -1,21 +1,58 @@
 # suckless
 
-Mi configuración de dwm, st, dmenu, slstatus, slock, scroll y clipmenu.
+Mis dotfiles para Void Linux: dwm, st, dmenu, slstatus, slock, scroll y
+clipmenu, más la configuración de la sesión (xinitrc, bash, picom, dunst...).
 Tema Everforest y fuente Fira Code en todos.
 
-Cada programa se importó con `git subtree --squash`, así que es un único repo
-pero se puede seguir actualizando desde el proyecto original.
+## Estructura
 
-## Compilar e instalar
+| Carpeta | Contenido |
+|---|---|
+| `suckless/` | Los programas, cada uno con su `config.h` y sus parches |
+| `home/` | Archivos que van en `~`, con la misma ruta (se enlazan) |
+| `sistema/` | Archivos que van en `/` (acpid, zzz, elogind) |
+| `install.sh` | Lo instala todo en un Void recién instalado |
 
-    cd dwm && make && sudo make install
+## Instalar
 
-(Igual para `st`, `dmenu`, `slstatus`, `slock`, `scroll` y `clipmenu`.)
+En un Void recién instalado, como tu usuario (pide sudo cuando hace falta):
+
+    git clone ssh://forgejo@ssh.alejandrogs.es/alejandrogs73/suckless.git ~/suckless
+    cd ~/suckless && ./install.sh
+
+Hace cinco pasos, que también se pueden lanzar por separado
+(`./install.sh enlaces`, por ejemplo) y repetir sin problema:
+
+1. `paquetes`: instala con xbps todo lo que usa la configuración.
+2. `suckless`: compila e instala los programas en `/usr/local`.
+3. `enlaces`: enlaza cada archivo de `home/` en `~`. Si ya existía un archivo
+   distinto, lo guarda como `.bak`. Como son enlaces, editar `~/.bashrc` es
+   editar el repo.
+4. `gnupg`: para después de copiar `~/.gnupg` a mano (de un USB, por
+   ejemplo). Arregla los permisos, pone `pinentry-gtk` (en una tty cae a
+   curses solo), activa el agente SSH de gpg y añade a `sshcontrol` las
+   subclaves de autenticación. `.bashrc` ya apunta `SSH_AUTH_SOCK` al agente.
+   Si `~/.gnupg` no existe todavía, no hace nada.
+5. `sistema`: copia `sistema/` en `/`, activa los servicios de runit (dbus,
+   elogind, polkitd, NetworkManager, bluetoothd, acpid, chronyd), quita
+   dhcpcd y wpa_supplicant (NetworkManager ya gestiona la red) y añade el
+   usuario a los grupos audio, video, input, network y bluetooth.
+
+Después hay que cerrar sesión y volver a entrar (por los grupos) y lanzar
+`startx`.
+
+Nix no se instala: lo poco que viene de ahí (webcord) se instala a mano.
+
+## Recompilar tras cambiar la configuración
+
+    cd suckless/dwm && make && sudo make install
 
 ## Actualizar desde el proyecto original
 
-    git subtree pull --prefix=dwm https://git.suckless.org/dwm master --squash
-    git subtree pull --prefix=clipmenu https://github.com/cdown/clipmenu develop --squash
+Cada programa se importó con `git subtree --squash`:
+
+    git subtree pull --prefix=suckless/dwm https://git.suckless.org/dwm master --squash
+    git subtree pull --prefix=suckless/clipmenu https://github.com/cdown/clipmenu develop --squash
 
 Los demás funcionan igual que dwm, cambiando el nombre en `--prefix` y en la URL.
 
@@ -57,7 +94,14 @@ muestran una notificación.
 - La configuración personal está en `config.h`. `config.def.h` es la versión
   original más los parches. Si un parche cambia `config.def.h`, hay que pasar
   el cambio a mano a `config.h`: `make` solo lo copia si `config.h` no existe.
-- Los parches aplicados están en `<programa>/patches/`.
-  - dwm: fullgaps
-  - st: ligatures, alpha y anysize (en ese orden; anysize necesita dos
-    arreglos a mano, ver el historial de git)
+- Los parches aplicados están en `suckless/<programa>/patches/`.
+  - dwm: fullgaps, restartsig, preserveonrestart, statuscmd-nosignal y swallow.
+  - st: kitty-graphics, alpha, glyph-wide-support y ligatures, en ese orden.
+    kitty-graphics ya incluye anysize. glyph-wide-support y la combinación
+    con ligatures vienen de la rama `graphics-with-patches` de
+    [st-graphics](https://github.com/sergei-grechanik/st-graphics), sin
+    boxdraw.
+- st muestra imágenes con el protocolo de gráficos de kitty; yazi lo detecta
+  solo y enseña las vistas previas sin ueberzugpp.
+- slock está modificado a mano (no es un parche): reloj, fecha, batería y
+  una barra inferior con el color del estado.
