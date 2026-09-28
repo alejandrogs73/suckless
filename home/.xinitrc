@@ -1,6 +1,6 @@
 #!/bin/sh
 
-# elogind ya crea XDG_RUNTIME_DIR (/run/user/UID); esto es solo por si falta.
+# turnstile ya crea XDG_RUNTIME_DIR (/run/user/UID); esto es solo por si falta.
 if [ -z "$XDG_RUNTIME_DIR" ]; then
 	export XDG_RUNTIME_DIR=/tmp/$(id -u)-runtime-dir
 	mkdir -p "$XDG_RUNTIME_DIR"

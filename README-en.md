@@ -16,7 +16,7 @@ real names you type; this README explains what each one does.
 |---|---|
 | `suckless/` | The programs, each with its own `config.h` and patches |
 | `home/` | Files that go in `~`, at the same path (they are symlinked) |
-| `sistema/` | Files that go in `/` (acpid, zzz, elogind, udev, doas, xbps, runit) |
+| `sistema/` | Files that go in `/` (acpid, zzz, turnstile, udev, doas, xbps, runit) |
 | `install.sh` | Installs everything on a fresh Void system |
 
 ## Install
@@ -52,26 +52,44 @@ for example) and repeated safely:
    does nothing.
 6. `sistema` (system): copies `sistema/` into `/`, sets up
    `wpa_supplicant.conf` so wheel users can use `wpa_cli` without root and
-   save networks, enables the runit services (dbus, elogind, wpa_supplicant,
-   dhcpcd, bluetoothd, acpid, chronyd, tlp, automontaje, cupsd), removes
-   NetworkManager and polkitd (if something asks for polkit, like udisks2 or
-   libvirt, D-Bus starts it on its own) and adds the user to the audio,
-   video, input, network, bluetooth, lpadmin (printer management) and
-   `_pipewire` (realtime priority for audio without rtkit) groups. `doas.conf`
-   is checked with `doas -C` before it is installed with mode 400.
+   save networks, enables the runit services (dbus, turnstiled,
+   wpa_supplicant, dhcpcd, bluetoothd, acpid, chronyd, tlp, automontaje,
+   cupsd), removes NetworkManager, elogind and polkitd (if something asks for
+   polkit, like udisks2 or libvirt, D-Bus starts it on its own) and adds the
+   user to the audio, video, input, network, bluetooth, lpadmin (printer
+   management) and `_pipewire` (realtime priority for audio without rtkit)
+   groups. `doas.conf` is checked with `doas -C` before it is installed with
+   mode 400.
 7. `quitar` (remove): uninstalls what the repo no longer uses because
    something else replaces it: sudo (doas), feh (xwallpaper and nsxiv),
    gammastep (sct), autorandr (`pantallas`), blueman and pavucontrol (the
    `bluetooth` and `volumen` scripts), pinentry-gtk (pinentry-dmenu), vlc
    (mpv), btop, NetworkManager and tlp-rdw (wpa_supplicant, dhcpcd and the
-   `wifi` script) and rtkit. sudo can be removed thanks to
-   `sistema/etc/xbps.d/sin-sudo.conf` (base-system depends on it), and it is
-   only removed once `/etc/doas.conf` is installed.
+   `wifi` script), rtkit and elogind (turnstile). sudo can be removed thanks
+   to `sistema/etc/xbps.d/sin-sudo.conf` (base-system depends on it), and it
+   is only removed once `/etc/doas.conf` is installed.
 
 Afterwards, log out and back in (for the groups) and run `startx`.
 
 Nix is not installed: the little that comes from it (webcord) is installed by
 hand.
+
+## Without elogind
+
+elogind is systemd's logind on its own, and it is not needed here:
+
+- `XDG_RUNTIME_DIR` (`/run/user/UID`) is created by turnstile at login
+  (`sistema/etc/turnstile/turnstiled.conf`: only that, no user services).
+- Xorg runs as root through `Xorg.wrap` (`needs_root_rights = yes` in
+  `/etc/X11/Xwrapper.config`, shipped by Void).
+- The lid and the power and suspend buttons are handled by acpid, which
+  calls `zzz`. Power off and reboot are runit's.
+- Devices (sound, video, input, bluetooth) are reached through the user's
+  groups, not through the ACLs elogind gave the active session.
+
+What stops working: mounting disks from a file manager (udisks2 asks polkit
+for an active session, and there is none). USB sticks are mounted by
+`automontaje`.
 
 ## Rebuilding after changing the config
 

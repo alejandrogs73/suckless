@@ -17,7 +17,7 @@ PAQUETES="
 	libXfixes-devel libxcb-devel freetype-devel fontconfig-devel harfbuzz-devel
 	libXrender-devel xorgproto imlib2-devel zlib-devel libxcrypt-devel
 
-	xorg xinit setxkbmap xrandr dbus elogind
+	xorg xinit setxkbmap xrandr dbus turnstile
 	picom dunst libnotify xwallpaper nsxiv maim xclip sct xss-lock
 	pipewire wireplumber libspa-bluetooth alsa-pipewire
 	wpa_supplicant dhcpcd bluez acpid chrony tlp
@@ -34,21 +34,23 @@ SUCKLESS="dwm st dmenu slstatus slock scroll clipmenu"
 # Tema GTK Everforest, en una versión fija para que siempre salga igual
 GTK_TEMA_REPO=https://github.com/Fausto-Korpsvart/Everforest-GTK-Theme
 GTK_TEMA_COMMIT=9b8be4d6648ae9eaae3dd550105081f8c9054825
-SERVICIOS="dbus elogind wpa_supplicant dhcpcd bluetoothd acpid chronyd tlp automontaje cupsd"
+SERVICIOS="dbus turnstiled wpa_supplicant dhcpcd bluetoothd acpid chronyd tlp automontaje cupsd"
 # La red la llevan wpa_supplicant y dhcpcd. polkitd no hace falta como
-# servicio: si algo lo pide (udisks2, libvirt), D-Bus lo arranca.
-SERVICIOS_FUERA="NetworkManager polkitd"
+# servicio: si algo lo pide (udisks2, libvirt), D-Bus lo arranca. turnstiled
+# sustituye a elogind.
+SERVICIOS_FUERA="NetworkManager polkitd elogind"
 # _pipewire da prioridad de tiempo real al audio sin rtkit
 # (/etc/security/limits.d/25-pw-rlimits.conf, de pipewire).
 GRUPOS="audio video input network bluetooth lpadmin _pipewire"
 # Lo que sustituyen otras cosas del repo: sudo (doas), feh (xwallpaper y
 # nsxiv), gammastep (sct), autorandr (pantallas), blueman y pavucontrol
 # (scripts bluetooth y volumen), pinentry-gtk (pinentry-dmenu), vlc (mpv),
-# NetworkManager (wpa_supplicant, dhcpcd y el script wifi) y rtkit (el grupo
-# _pipewire).
+# NetworkManager (wpa_supplicant, dhcpcd y el script wifi), rtkit (el grupo
+# _pipewire) y elogind (turnstile; Xorg arranca como root con Xorg.wrap y la
+# tapa y los botones ya los lleva acpid).
 QUITAR="
 	sudo feh gammastep autorandr blueman pavucontrol pinentry-gtk
-	gtk-engine-murrine vlc btop NetworkManager tlp-rdw rtkit
+	gtk-engine-murrine vlc btop NetworkManager tlp-rdw rtkit elogind
 "
 
 msg() { printf '\033[1;32m==>\033[0m %s\n' "$*"; }
@@ -249,6 +251,11 @@ quitar() {
 	msg "Quitando:$fuera"
 	# shellcheck disable=SC2086
 	root xbps-remove -Ry $fuera
+
+	# Lo que puso aquí una versión anterior de sistema/ para elogind
+	if [ -e /etc/elogind/logind.conf.d/10-acpid.conf ]; then
+		root rm /etc/elogind/logind.conf.d/10-acpid.conf
+	fi
 }
 
 [ -f /etc/void-release ] || command -v xbps-install >/dev/null ||

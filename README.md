@@ -12,7 +12,7 @@ Tema Everforest y fuente Fira Code en todos.
 |---|---|
 | `suckless/` | Los programas, cada uno con su `config.h` y sus parches |
 | `home/` | Archivos que van en `~`, con la misma ruta (se enlazan) |
-| `sistema/` | Archivos que van en `/` (acpid, zzz, elogind, udev, doas, xbps, runit) |
+| `sistema/` | Archivos que van en `/` (acpid, zzz, turnstile, udev, doas, xbps, runit) |
 | `install.sh` | Lo instala todo en un Void recién instalado |
 
 ## Instalar
@@ -47,27 +47,46 @@ Hace siete pasos, que también se pueden lanzar por separado
    subclaves de autenticación y hace que recuerde la contraseña una hora.
    `.bashrc` ya apunta `SSH_AUTH_SOCK` al agente. Si `~/.gnupg` no existe
    todavía, no hace nada.
-6. `sistema`: copia `sistema/` en `/`, prepara `wpa_supplicant.conf` para
-   que los de wheel usen `wpa_cli` sin root y guarden redes, activa los
-   servicios de runit (dbus, elogind, wpa_supplicant, dhcpcd, bluetoothd,
-   acpid, chronyd, tlp, automontaje, cupsd), quita NetworkManager y polkitd
+6. `sistema`: copia `sistema/` en `/`, prepara `wpa_supplicant.conf` para que
+   los de wheel usen `wpa_cli` sin root y guarden redes, activa los servicios
+   de runit (dbus, turnstiled, wpa_supplicant, dhcpcd, bluetoothd, acpid,
+   chronyd, tlp, automontaje, cupsd), quita NetworkManager, elogind y polkitd
    (si algo pide polkit, como udisks2 o libvirt, D-Bus lo arranca solo) y
    añade el usuario a los grupos audio, video, input, network, bluetooth,
-   lpadmin (para gestionar impresoras) y `_pipewire` (prioridad de tiempo
-   real para el audio sin rtkit). `doas.conf` se
-   valida con `doas -C` antes de instalarlo con modo 400.
+   lpadmin (para gestionar impresoras) y `_pipewire` (prioridad de tiempo real
+   para el audio sin rtkit). `doas.conf` se valida con `doas -C` antes de
+   instalarlo con modo 400.
 7. `quitar`: desinstala lo que el repo ya no usa porque lo sustituye otra
    cosa: sudo (doas), feh (xwallpaper y nsxiv), gammastep (sct), autorandr
    (`pantallas`), blueman y pavucontrol (scripts `bluetooth` y `volumen`),
-   pinentry-gtk (pinentry-dmenu), vlc (mpv), btop, NetworkManager y
-   tlp-rdw (wpa_supplicant, dhcpcd y el script `wifi`) y rtkit. sudo se puede quitar
-   gracias a `sistema/etc/xbps.d/sin-sudo.conf` (base-system depende de
-   él), y solo se quita si `/etc/doas.conf` ya está instalado.
+   pinentry-gtk (pinentry-dmenu), vlc (mpv), btop, NetworkManager y tlp-rdw
+   (wpa_supplicant, dhcpcd y el script `wifi`), rtkit y elogind (turnstile).
+   sudo se puede quitar gracias a `sistema/etc/xbps.d/sin-sudo.conf`
+   (base-system depende de él), y solo se quita si `/etc/doas.conf` ya está
+   instalado.
 
 Después hay que cerrar sesión y volver a entrar (por los grupos) y lanzar
 `startx`.
 
 Nix no se instala: lo poco que viene de ahí (webcord) se instala a mano.
+
+## Sin elogind
+
+elogind es el logind de systemd por separado, y aquí sobra:
+
+- `XDG_RUNTIME_DIR` (`/run/user/UID`) lo crea turnstile al entrar
+  (`sistema/etc/turnstile/turnstiled.conf`: solo eso, sin servicios de
+  usuario).
+- Xorg arranca como root con `Xorg.wrap` (`needs_root_rights = yes` en
+  `/etc/X11/Xwrapper.config`, lo trae Void).
+- La tapa y los botones de encendido y suspender los lleva acpid, que llama a
+  `zzz`. Apagar y reiniciar son los de runit.
+- Los dispositivos (sonido, vídeo, entrada, bluetooth) van por los grupos del
+  usuario, no por las ACL que ponía elogind a la sesión activa.
+
+Lo que deja de ir: montar discos desde un gestor de archivos (udisks2 pide a
+polkit una sesión activa, que ya no hay). Las memorias USB las monta
+`automontaje`.
 
 ## Recompilar tras cambiar la configuración
 
