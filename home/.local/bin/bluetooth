@@ -1,8 +1,9 @@
 #!/bin/sh
-# Menú de bluetooth con dmenu (clic izquierdo en BT de la barra): conectar o
-# desconectar los dispositivos emparejados (󰂱 = conectado), buscar y
-# emparejar uno nuevo y apagar el adaptador. Si está apagado, ofrece
-# encenderlo.
+# Menú de bluetooth con dmenu (clic izquierdo en BT de la barra). Arriba, los
+# dispositivos conocidos (emparejados o de confianza; 󰂱 = conectado): elegir
+# uno lo desconecta si está conectado y, si no, lo busca y se conecta (y lo
+# vuelve a emparejar si hace falta). Debajo, buscar y emparejar uno nuevo y
+# apagar el adaptador. Si está apagado, ofrece encenderlo.
 
 avisar() {
 	notify-send -h string:x-dunst-stack-tag:bluetooth -i bluetooth "Bluetooth" "$1"
@@ -11,6 +12,36 @@ avisar() {
 # "Device AA:BB:CC:DD:EE:FF Nombre" -> "Nombre (AA:BB:CC:DD:EE:FF)"
 lista() { sed -n 's/^Device \([^ ]*\) \(.*\)/\2 (\1)/p'; }
 mac() { printf '%s\n' "$1" | sed 's/.*(\([^)]*\))$/\1/'; }
+buscar() { bluetoothctl --timeout "$1" scan on >/dev/null; }
+
+# Sin agente, bluetoothctl no puede emparejar; los auriculares no piden PIN.
+emparejar() {
+	bluetoothctl --agent NoInputNoOutput pair "$1" >/dev/null &&
+		bluetoothctl trust "$1" >/dev/null
+}
+
+# conectar MAC: si no está emparejado lo empareja; si no está a la vista, lo
+# busca unos segundos y lo vuelve a intentar.
+conectar() {
+	if ! bluetoothctl info "$1" | grep -q 'Paired: yes'; then
+		emparejar "$1" || { buscar 8 && emparejar "$1"; } || return 1
+	fi
+	bluetoothctl connect "$1" >/dev/null ||
+		{ buscar 8 && bluetoothctl connect "$1" >/dev/null; }
+}
+
+# conectar_y_avisar "Nombre (MAC)"
+conectar_y_avisar() {
+	nombre=${1% (*}
+	avisar "Conectando: $nombre..."
+	if conectar "$(mac "$1")"; then
+		avisar "Conectado: $nombre"
+	elif ! pgrep -x wireplumber >/dev/null; then
+		avisar "No se pudo conectar $nombre: wireplumber no está en marcha (sin él no hay audio)"
+	else
+		avisar "No se pudo conectar $nombre: ¿está encendido y cerca?"
+	fi
+}
 
 if ! bluetoothctl show | grep -q 'Powered: yes'; then
 	[ "$(echo Encender | menu -p Bluetooth:)" = Encender ] || exit 0
@@ -19,10 +50,10 @@ if ! bluetoothctl show | grep -q 'Powered: yes'; then
 fi
 
 conectados=$(bluetoothctl devices Connected | lista)
-emparejados=$(bluetoothctl devices Paired | lista)
+conocidos=$({ bluetoothctl devices Paired; bluetoothctl devices Trusted; } | lista | sort -u)
 
 opcion=$(
-	printf '%s\n' "$emparejados" | while IFS= read -r d; do
+	printf '%s\n' "$conocidos" | while IFS= read -r d; do
 		[ -n "$d" ] || continue
 		if printf '%s\n' "$conectados" | grep -qxF "$d"; then
 			echo "󰂱 $d"
@@ -42,29 +73,19 @@ case $opcion in
 	;;
 *"  Buscar dispositivos")
 	avisar "Buscando dispositivos durante 10 s..."
-	bluetoothctl --timeout 10 scan on >/dev/null
-	nuevo=$(bluetoothctl devices | lista | awk -v e="$emparejados" '
+	buscar 10
+	nuevo=$(bluetoothctl devices | lista | awk -v e="$conocidos" '
 		BEGIN { n = split(e, a, "\n"); for (i = 1; i <= n; i++) visto[a[i]] }
 		!($0 in visto)' | menu -p Emparejar:)
 	[ -n "$nuevo" ] || exit 0
-	m=$(mac "$nuevo")
-	if bluetoothctl pair "$m" >/dev/null && bluetoothctl trust "$m" >/dev/null &&
-		bluetoothctl connect "$m" >/dev/null; then
-		avisar "Conectado: $nuevo"
-	else
-		avisar "No se pudo emparejar: $nuevo"
-	fi
+	conectar_y_avisar "$nuevo"
 	;;
 "󰂱 "*)
 	bluetoothctl disconnect "$(mac "$opcion")" >/dev/null &&
 		avisar "Desconectado: ${opcion#"󰂱 "}"
 	;;
 *)
-	if bluetoothctl connect "$(mac "$opcion")" >/dev/null; then
-		avisar "Conectado: ${opcion#"  "}"
-	else
-		avisar "No se pudo conectar: ${opcion#"  "}"
-	fi
+	conectar_y_avisar "${opcion#"  "}"
 	;;
 esac
 pkill -USR1 -x slstatus
