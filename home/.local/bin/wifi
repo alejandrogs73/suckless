@@ -1,0 +1,73 @@
+#!/bin/sh
+# Menú de WiFi con dmenu y wpa_cli (clic izquierdo en la red de la barra).
+# Busca redes y las ordena por señal; * marca la actual. Si la elegida ya está
+# guardada se conecta; si no, pide la contraseña (no se ve al escribirla) y la
+# guarda en /etc/wpa_supplicant/wpa_supplicant.conf cuando la conexión va bien.
+# wpa_cli funciona sin root para los de wheel (ctrl_interface_group, lo pone
+# install.sh en el paso sistema).
+
+avisar() {
+	notify-send -h string:x-dunst-stack-tag:wifi -i network-wireless "WiFi" "$1"
+}
+
+IF=
+for w in /sys/class/net/*/wireless; do
+	[ -e "$w" ] && IF=${w%/wireless} && IF=${IF##*/} && break
+done
+[ -n "$IF" ] || { avisar "No hay tarjeta WiFi"; exit 1; }
+
+wpa() { wpa_cli -i "$IF" "$@"; }
+
+wpa scan >/dev/null || { avisar "wpa_supplicant no responde"; exit 1; }
+sleep 3
+actual=$(wpa status | sed -n 's/^ssid=//p')
+
+# scan_results: bssid, frecuencia, señal, flags y ssid, separados por tabuladores
+resultados=$(wpa scan_results | tail -n +2)
+ssid=$(printf '%s\n' "$resultados" | sort -t "$(printf '\t')" -k3,3nr |
+	awk -F '\t' -v a="$actual" '$5 != "" && !visto[$5]++ {
+		print ($5 == a ? "* " : "  ") $5
+	}' | menu -l 15 -p WiFi:)
+[ -n "$ssid" ] || exit 0
+ssid=${ssid#??}
+
+id=$(wpa list_networks | awk -F '\t' -v s="$ssid" 'NR > 1 && $2 == s { print $1; exit }')
+nueva=
+if [ -z "$id" ]; then
+	nueva=1
+	id=$(wpa add_network | tail -1)
+	wpa set_network "$id" ssid "\"$ssid\"" >/dev/null
+	flags=$(printf '%s\n' "$resultados" | awk -F '\t' -v s="$ssid" '$5 == s { print $4; exit }')
+	case $flags in
+	*WPA* | *RSN* | *SAE*)
+		clave=$(menu -p "Contraseña de $ssid:" -nf "#2d353b" </dev/null)
+		if [ -z "$clave" ]; then
+			wpa remove_network "$id" >/dev/null
+			exit 0
+		fi
+		wpa set_network "$id" psk "\"$clave\"" >/dev/null
+		;;
+	*) wpa set_network "$id" key_mgmt NONE >/dev/null ;;
+	esac
+fi
+
+avisar "Conectando a $ssid..."
+wpa select_network "$id" >/dev/null
+i=0
+while [ "$i" -lt 20 ] && ! wpa status | grep -qx wpa_state=COMPLETED; do
+	sleep 1
+	i=$((i + 1))
+done
+
+# select_network deshabilita las demás redes: se vuelven a habilitar para que
+# siga cambiando sola a la que haya.
+if wpa status | grep -qx wpa_state=COMPLETED; then
+	wpa enable_network all >/dev/null
+	wpa save_config >/dev/null
+	avisar "Conectado a $ssid"
+else
+	[ -n "$nueva" ] && wpa remove_network "$id" >/dev/null
+	wpa enable_network all >/dev/null
+	avisar "No se pudo conectar a $ssid"
+fi
+pkill -USR1 -x slstatus

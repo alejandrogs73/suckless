@@ -47,16 +47,20 @@ Hace siete pasos, que también se pueden lanzar por separado
    subclaves de autenticación y hace que recuerde la contraseña una hora.
    `.bashrc` ya apunta `SSH_AUTH_SOCK` al agente. Si `~/.gnupg` no existe
    todavía, no hace nada.
-6. `sistema`: copia `sistema/` en `/`, activa los servicios de runit (dbus,
-   elogind, polkitd, NetworkManager, bluetoothd, acpid, chronyd, tlp,
-   automontaje, cupsd), quita dhcpcd y wpa_supplicant (NetworkManager ya
-   gestiona la red) y añade el usuario a los grupos audio, video, input,
-   network, bluetooth y lpadmin (para gestionar impresoras). `doas.conf` se
+6. `sistema`: copia `sistema/` en `/`, prepara `wpa_supplicant.conf` para
+   que los de wheel usen `wpa_cli` sin root y guarden redes, activa los
+   servicios de runit (dbus, elogind, wpa_supplicant, dhcpcd, bluetoothd,
+   acpid, chronyd, tlp, automontaje, cupsd), quita NetworkManager y polkitd
+   (si algo pide polkit, como udisks2 o libvirt, D-Bus lo arranca solo) y
+   añade el usuario a los grupos audio, video, input, network, bluetooth,
+   lpadmin (para gestionar impresoras) y `_pipewire` (prioridad de tiempo
+   real para el audio sin rtkit). `doas.conf` se
    valida con `doas -C` antes de instalarlo con modo 400.
 7. `quitar`: desinstala lo que el repo ya no usa porque lo sustituye otra
    cosa: sudo (doas), feh (xwallpaper y nsxiv), gammastep (sct), autorandr
    (`pantallas`), blueman y pavucontrol (scripts `bluetooth` y `volumen`),
-   pinentry-gtk (pinentry-dmenu), vlc (mpv) y btop. sudo se puede quitar
+   pinentry-gtk (pinentry-dmenu), vlc (mpv), btop, NetworkManager y
+   tlp-rdw (wpa_supplicant, dhcpcd y el script `wifi`) y rtkit. sudo se puede quitar
    gracias a `sistema/etc/xbps.d/sin-sudo.conf` (base-system depende de
    él), y solo se quita si `/etc/doas.conf` ya está instalado.
 
@@ -122,7 +126,7 @@ Los menús de los scripts (`apagado`, `bluetooth`, `volumen salida`...) usan
 
 | Zona | Izquierdo | Central | Derecho | Rueda |
 |---|---|---|---|---|
-| Red | Conectarse a una red | | Menú completo | |
+| Red | Conectarse a una red (`wifi`) | | `wpa_cli` | |
 | VOL | Elegir la salida de audio (`volumen salida`) | Silenciar | Silenciar el micro | Volumen ± |
 | BT | Menú de bluetooth (`bluetooth`): conectar, desconectar, buscar y emparejar, apagar | | Encender o apagar | |
 | Fecha | Calendario del mes | | | |
@@ -142,6 +146,10 @@ y muestran una notificación.
   `xrandr` (la del portátil a la izquierda y como principal) al arrancar y
   cada vez que se conecta o desconecta una (regla de udev en `sistema/`), y
   vuelve a pintar el fondo con `xwallpaper`.
+- WiFi: `wifi` busca redes con `wpa_cli` y las enseña en dmenu por señal
+  (`*` la actual). Si la red es nueva pide la contraseña (no se ve al
+  escribirla) y la guarda en `/etc/wpa_supplicant/wpa_supplicant.conf` solo
+  si la conexión va bien. El cable lo coge dhcpcd solo.
 - Clic izquierdo en la fecha de la barra: calendario del mes en una
   notificación (`calendario`), con el día de hoy en verde.
 - bash: historial de 10 000 órdenes, sin duplicados y compartido entre

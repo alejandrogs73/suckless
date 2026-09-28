@@ -50,17 +50,21 @@ for example) and repeated safely:
    to `sshcontrol` and caches the passphrase for one hour. `.bashrc` already
    points `SSH_AUTH_SOCK` at the agent. If `~/.gnupg` does not exist yet, it
    does nothing.
-6. `sistema` (system): copies `sistema/` into `/`, enables the runit services
-   (dbus, elogind, polkitd, NetworkManager, bluetoothd, acpid, chronyd, tlp,
-   automontaje, cupsd), removes dhcpcd and wpa_supplicant (NetworkManager
-   already manages the network) and adds the user to the audio, video, input,
-   network, bluetooth and lpadmin (printer management) groups. `doas.conf`
+6. `sistema` (system): copies `sistema/` into `/`, sets up
+   `wpa_supplicant.conf` so wheel users can use `wpa_cli` without root and
+   save networks, enables the runit services (dbus, elogind, wpa_supplicant,
+   dhcpcd, bluetoothd, acpid, chronyd, tlp, automontaje, cupsd), removes
+   NetworkManager and polkitd (if something asks for polkit, like udisks2 or
+   libvirt, D-Bus starts it on its own) and adds the user to the audio,
+   video, input, network, bluetooth, lpadmin (printer management) and
+   `_pipewire` (realtime priority for audio without rtkit) groups. `doas.conf`
    is checked with `doas -C` before it is installed with mode 400.
 7. `quitar` (remove): uninstalls what the repo no longer uses because
    something else replaces it: sudo (doas), feh (xwallpaper and nsxiv),
    gammastep (sct), autorandr (`pantallas`), blueman and pavucontrol (the
    `bluetooth` and `volumen` scripts), pinentry-gtk (pinentry-dmenu), vlc
-   (mpv) and btop. sudo can be removed thanks to
+   (mpv), btop, NetworkManager and tlp-rdw (wpa_supplicant, dhcpcd and the
+   `wifi` script) and rtkit. sudo can be removed thanks to
    `sistema/etc/xbps.d/sin-sudo.conf` (base-system depends on it), and it is
    only removed once `/etc/doas.conf` is installed.
 
@@ -125,7 +129,7 @@ which is dmenu with the dwm font and colours.
 
 | Area | Left | Middle | Right | Wheel |
 |---|---|---|---|---|
-| Network | Connect to a network | | Full menu | |
+| Network | Connect to a network (`wifi`) | | `wpa_cli` | |
 | VOL | Pick the audio output (`volumen salida`) | Mute | Mute the mic | Volume ± |
 | BT | Bluetooth menu (`bluetooth`): connect, disconnect, scan and pair, power off | | Power on or off | |
 | Date | This month's calendar | | | |
@@ -145,6 +149,11 @@ shown in a notification.
   (the laptop one on the left and as primary) at startup and whenever one is
   plugged or unplugged (udev rule in `sistema/`), then repaints the
   wallpaper with `xwallpaper`.
+- WiFi: `wifi` scans with `wpa_cli` and lists the networks in dmenu by
+  signal (`*` is the current one). For a new network it asks for the
+  password (hidden while typing) and saves it in
+  `/etc/wpa_supplicant/wpa_supplicant.conf` only if the connection works.
+  dhcpcd handles the cable on its own.
 - Left click on the date in the bar: this month's calendar in a notification
   (`calendario`), with today in green.
 - bash: 10 000-entry history, without duplicates and shared between

@@ -17,10 +17,10 @@ PAQUETES="
 	libXfixes-devel libxcb-devel freetype-devel fontconfig-devel harfbuzz-devel
 	libXrender-devel xorgproto imlib2-devel zlib-devel libxcrypt-devel
 
-	xorg xinit setxkbmap xrandr dbus elogind polkit
+	xorg xinit setxkbmap xrandr dbus elogind
 	picom dunst libnotify xwallpaper nsxiv maim xclip sct xss-lock
-	pipewire wireplumber libspa-bluetooth alsa-pipewire rtkit
-	NetworkManager bluez acpid chrony tlp tlp-rdw
+	pipewire wireplumber libspa-bluetooth alsa-pipewire
+	wpa_supplicant dhcpcd bluez acpid chrony tlp
 	cups cups-filters hplip
 	font-firacode nerd-fonts-symbols-ttf papirus-icon-theme papirus-folders
 	sassc gnome-themes-extra qt5ct qt6ct
@@ -34,16 +34,21 @@ SUCKLESS="dwm st dmenu slstatus slock scroll clipmenu"
 # Tema GTK Everforest, en una versión fija para que siempre salga igual
 GTK_TEMA_REPO=https://github.com/Fausto-Korpsvart/Everforest-GTK-Theme
 GTK_TEMA_COMMIT=9b8be4d6648ae9eaae3dd550105081f8c9054825
-SERVICIOS="dbus elogind polkitd NetworkManager bluetoothd acpid chronyd tlp automontaje cupsd"
-# NetworkManager gestiona la red él solo; estos servicios se pelean con él.
-SERVICIOS_FUERA="dhcpcd wpa_supplicant"
-GRUPOS="audio video input network bluetooth lpadmin"
+SERVICIOS="dbus elogind wpa_supplicant dhcpcd bluetoothd acpid chronyd tlp automontaje cupsd"
+# La red la llevan wpa_supplicant y dhcpcd. polkitd no hace falta como
+# servicio: si algo lo pide (udisks2, libvirt), D-Bus lo arranca.
+SERVICIOS_FUERA="NetworkManager polkitd"
+# _pipewire da prioridad de tiempo real al audio sin rtkit
+# (/etc/security/limits.d/25-pw-rlimits.conf, de pipewire).
+GRUPOS="audio video input network bluetooth lpadmin _pipewire"
 # Lo que sustituyen otras cosas del repo: sudo (doas), feh (xwallpaper y
 # nsxiv), gammastep (sct), autorandr (pantallas), blueman y pavucontrol
-# (scripts bluetooth y volumen), pinentry-gtk (pinentry-dmenu), vlc (mpv).
+# (scripts bluetooth y volumen), pinentry-gtk (pinentry-dmenu), vlc (mpv),
+# NetworkManager (wpa_supplicant, dhcpcd y el script wifi) y rtkit (el grupo
+# _pipewire).
 QUITAR="
 	sudo feh gammastep autorandr blueman pavucontrol pinentry-gtk
-	gtk-engine-murrine vlc btop
+	gtk-engine-murrine vlc btop NetworkManager tlp-rdw rtkit
 "
 
 msg() { printf '\033[1;32m==>\033[0m %s\n' "$*"; }
@@ -196,6 +201,18 @@ sistema() {
 		echo "  $f"
 	done
 	cd "$DIR"
+
+	# wpa_cli sin root para los de wheel (script wifi) y guardar las redes
+	# nuevas. El archivo tiene las contraseñas: se edita en su sitio.
+	msg "Configurando wpa_supplicant"
+	w=/etc/wpa_supplicant/wpa_supplicant.conf
+	cabecera="ctrl_interface=/run/wpa_supplicant
+ctrl_interface_group=wheel
+update_config=1"
+	# shellcheck disable=SC2016
+	root sh -c 'umask 077; touch "$1"
+		{ printf "%s\n" "$2"; grep -v -e "^ctrl_interface" -e "^update_config" "$1"; } >"$1.nuevo"
+		mv "$1.nuevo" "$1"' sh "$w" "$cabecera"
 
 	msg "Activando servicios"
 	for s in $SERVICIOS; do

@@ -38,7 +38,7 @@ static const Rule rules[] = {
 	 * hasta que se cierra; noswallow = 1 lo evita para esa ventana. */
 	/* class          instance           title           tags mask  isfloating  isterminal  noswallow  monitor */
 	{ "st-256color",  NULL,              NULL,           0,         0,          1,          0,         -1 },
-	{ "st-float",     NULL,              NULL,           0,         1,          0,          1,         -1 }, /* st -c st-float (p. ej. nmtui) */
+	{ "st-float",     NULL,              NULL,           0,         1,          0,          1,         -1 }, /* st -c st-float (p. ej. wpa_cli) */
 	{ "Gimp",         NULL,              NULL,           0,         1,          0,          0,         -1 },
 	{ "Firefox",      "Places",          NULL,           0,         1,          0,          0,         -1 }, /* biblioteca/descargas */
 	{ "Firefox",      "Toolkit",         NULL,           0,         1,          0,          0,         -1 }, /* picture-in-picture */
@@ -96,10 +96,10 @@ static const char *lockcmd[]  = { "slock", NULL };
  * (1 izquierdo, 2 central, 3 derecho, 4/5 rueda arriba/abajo).
  */
 static const StatusCmd statuscmds[] = {
-	/* red: izquierdo conectarse a una red, derecho el menú completo de nmtui */
+	/* red: izquierdo conectarse a una red (script wifi), derecho wpa_cli */
 	{ "case $BUTTON in "
-	  "1) st -c st-float -g 90x30 -e nmtui connect ;; "
-	  "3) st -c st-float -g 90x30 -e nmtui ;; "
+	  "1) wifi ;; "
+	  "3) st -c st-float -g 90x30 -e wpa_cli ;; "
 	  "esac", 1 },
 	/* volumen: izquierdo elegir la salida, central silenciar, derecho micro, rueda subir/bajar */
 	{ "case $BUTTON in "
