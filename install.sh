@@ -18,27 +18,28 @@ PAQUETES="
 	libXrender-devel xorgproto imlib2-devel zlib-devel libxcrypt-devel
 
 	xorg xinit setxkbmap xrandr dbus turnstile
-	picom dunst libnotify xwallpaper nsxiv maim xclip sct xss-lock
+	picom dunst libnotify xwallpaper nsxiv maim xclip sct xssstate
 	pipewire wireplumber libspa-bluetooth alsa-pipewire
-	wpa_supplicant dhcpcd bluez acpid chrony tlp
+	wpa_supplicant dhcpcd bluez acpid openntpd tlp
 	cups cups-filters hplip
 	font-firacode nerd-fonts-symbols-ttf papirus-icon-theme papirus-folders
 	sassc gnome-themes-extra qt5ct qt6ct
 
 	opendoas gnupg pinentry-dmenu
 	firefox thunderbird mpv neovim git fuse-sshfs unzip
-	yazi file ffmpeg 7zip jq poppler fd ripgrep fzf zoxide resvg ImageMagick
+	yazi file bsdtar ffmpeg 7zip jq poppler fd ripgrep fzf zoxide resvg ImageMagick
 "
 
 SUCKLESS="dwm st dmenu slstatus slock scroll clipmenu"
 # Tema GTK Everforest, en una versión fija para que siempre salga igual
 GTK_TEMA_REPO=https://github.com/Fausto-Korpsvart/Everforest-GTK-Theme
 GTK_TEMA_COMMIT=9b8be4d6648ae9eaae3dd550105081f8c9054825
-SERVICIOS="dbus turnstiled wpa_supplicant dhcpcd bluetoothd acpid chronyd tlp automontaje cupsd"
+SERVICIOS="dbus turnstiled wpa_supplicant dhcpcd bluetoothd acpid openntpd tlp automontaje cupsd"
 # La red la llevan wpa_supplicant y dhcpcd. polkitd no hace falta como
-# servicio: si algo lo pide (udisks2, libvirt), D-Bus lo arranca. turnstiled
-# sustituye a elogind.
-SERVICIOS_FUERA="NetworkManager polkitd elogind"
+# servicio: si algo lo pide (libvirt), D-Bus lo arranca. turnstiled sustituye
+# a elogind y openntpd a chronyd. avahi-daemon (mDNS) no hace falta: la
+# impresora va por IP fija.
+SERVICIOS_FUERA="NetworkManager polkitd elogind chronyd avahi-daemon"
 # _pipewire da prioridad de tiempo real al audio sin rtkit
 # (/etc/security/limits.d/25-pw-rlimits.conf, de pipewire).
 GRUPOS="audio video input network bluetooth lpadmin _pipewire"
@@ -46,11 +47,14 @@ GRUPOS="audio video input network bluetooth lpadmin _pipewire"
 # nsxiv), gammastep (sct), autorandr (pantallas), blueman y pavucontrol
 # (scripts bluetooth y volumen), pinentry-gtk (pinentry-dmenu), vlc (mpv),
 # NetworkManager (wpa_supplicant, dhcpcd y el script wifi), rtkit (el grupo
-# _pipewire) y elogind (turnstile; Xorg arranca como root con Xorg.wrap y la
-# tapa y los botones ya los lleva acpid).
+# _pipewire), elogind (turnstile; Xorg arranca como root con Xorg.wrap y la
+# tapa y los botones ya los lleva acpid), xss-lock (inactivo, con xssstate),
+# chrony (openntpd), avahi y nss-mdns (nada los usa) y nemo con upower (yazi;
+# con nemo se van gvfs y udisks2).
 QUITAR="
 	sudo feh gammastep autorandr blueman pavucontrol pinentry-gtk
 	gtk-engine-murrine vlc btop NetworkManager tlp-rdw rtkit elogind
+	xss-lock chrony avahi nss-mdns nemo upower
 "
 
 msg() { printf '\033[1;32m==>\033[0m %s\n' "$*"; }
@@ -259,6 +263,12 @@ quitar() {
 	msg "Quitando:$fuera"
 	# shellcheck disable=SC2086
 	root xbps-remove -Ry $fuera
+
+	# Sin nss-mdns, "mdns" sobra en la línea hosts de nsswitch.conf
+	if grep -q '^hosts:.*mdns' /etc/nsswitch.conf; then
+		root sed -i '/^hosts:/s/ mdns[a-z0-9_]*\( \[NOTFOUND=return\]\)\{0,1\}//g' \
+			/etc/nsswitch.conf
+	fi
 
 	# Lo que puso aquí una versión anterior de sistema/ para elogind
 	if [ -e /etc/elogind/logind.conf.d/10-acpid.conf ]; then

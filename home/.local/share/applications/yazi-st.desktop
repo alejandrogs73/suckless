@@ -1,0 +1,8 @@
+[Desktop Entry]
+Type=Application
+Name=yazi
+Comment=Carpetas con yazi en st (para xdg-open y Firefox)
+Exec=st -e yazi %f
+Terminal=false
+MimeType=inode/directory;
+NoDisplay=true

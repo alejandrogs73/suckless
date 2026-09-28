@@ -1,0 +1,12 @@
+#!/bin/sh
+# Bloquea con slock cuando salta el salvapantallas de X (xset s en .xinitrc:
+# 30 minutos sin tocar nada). Mira el estado con xssstate cada 5 s. Los
+# vídeos que piden no apagar la pantalla (mpv, Firefox) paran el salvapantallas
+# y así tampoco bloquea. Al suspender ya bloquea el hook de zzz.
+
+while :; do
+	if [ "$(xssstate -s)" = on ] && ! pgrep -x slock >/dev/null; then
+		slock
+	fi
+	sleep 5
+done

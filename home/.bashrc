@@ -3,8 +3,15 @@
 # =====================================================================
 
 # --- 1. Entorno y Rutas ---
-# Priorizar binarios locales y scripts de usuario
-export PATH="$HOME/.local/bin:/usr/local/bin:$PATH"
+# Priorizar binarios locales y scripts de usuario. Si ya estaban (un bash
+# dentro de otro), se quitan antes para no repetirlos.
+for d in /usr/local/bin "$HOME/.local/bin"; do
+    PATH=":$PATH:"
+    PATH=${PATH//:$d:/:}
+    PATH=${PATH#:}
+    PATH="$d:${PATH%:}"
+done
+export PATH
 export SSH_AUTH_SOCK=$(gpgconf --list-dirs agent-ssh-socket)
 export GPG_TTY=$(tty)
 gpg-connect-agent updatestartuptty /bye >/dev/null 2>&1
@@ -71,27 +78,20 @@ alias esp32='doas chmod a+rw /dev/ttyUSB0'
 
 # --- 5. Funciones Útiles ---
 
-# Comando 'ex': Descomprime LITERALMENTE CUALQUIER COSA
-# Uso: ex archivo.zip | ex archivo.tar.gz
+# ex: descomprime lo que sea. bsdtar se entiende con tar (gz, bz2, xz, zst),
+# zip, 7z, rar e iso; los comprimidos sueltos, con su herramienta.
+# Uso: ex archivo.zip [otro.tar.gz ...]
 ex() {
-    if [ -f "$1" ]; then
-        case $1 in
-            *.tar.bz2)   tar xjf "$1"   ;;
-            *.tar.gz)    tar xzf "$1"   ;;
-            *.bz2)       bunzip2 "$1"   ;;
-            *.rar)       unrar x "$1"   ;;
-            *.gz)        gunzip "$1"    ;;
-            *.tar)       tar xf "$1"    ;;
-            *.tbz2)      tar xjf "$1"   ;;
-            *.tgz)       tar xzf "$1"   ;;
-            *.zip)       unzip "$1"     ;;
-            *.Z)         uncompress "$1";;
-            *.7z)        7z x "$1"      ;;
-            *)           echo "'$1' formato no reconocido por la función ex()" ;;
+    for f; do
+        case $f in
+            *.tar|*.tar.*|*.t?z|*.tbz2|*.zip|*.7z|*.rar|*.iso) bsdtar -xf "$f" ;;
+            *.gz)  gunzip -k "$f" ;;
+            *.bz2) bunzip2 -k "$f" ;;
+            *.xz)  unxz -k "$f" ;;
+            *.zst) unzstd "$f" ;;
+            *)     echo "ex: no sé descomprimir '$f'" >&2 ;;
         esac
-    else
-        echo "'$1' no es un archivo válido"
-    fi
+    done
 }
 
 # Forzar IPv4 en Nix (IPv6 del sistema está roto)

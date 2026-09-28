@@ -51,20 +51,22 @@ Hace siete pasos, que también se pueden lanzar por separado
 6. `sistema`: copia `sistema/` en `/`, prepara `wpa_supplicant.conf` para que
    los de wheel usen `wpa_cli` sin root y guarden redes, activa los servicios
    de runit (dbus, turnstiled, wpa_supplicant, dhcpcd, bluetoothd, acpid,
-   chronyd, tlp, automontaje, cupsd), quita NetworkManager, elogind y polkitd
-   (si algo pide polkit, como udisks2 o libvirt, D-Bus lo arranca solo) y
-   añade el usuario a los grupos audio, video, input, network, bluetooth,
-   lpadmin (para gestionar impresoras) y `_pipewire` (prioridad de tiempo real
-   para el audio sin rtkit). `doas.conf` se valida con `doas -C` antes de
-   instalarlo con modo 400.
+   openntpd, tlp, automontaje, cupsd), quita NetworkManager, elogind, chronyd,
+   avahi-daemon (la impresora va por IP fija) y polkitd (si algo pide polkit,
+   como libvirt, D-Bus lo arranca solo) y añade el usuario a los grupos audio,
+   video, input, network, bluetooth, lpadmin (para gestionar impresoras) y
+   `_pipewire` (prioridad de tiempo real para el audio sin rtkit). `doas.conf`
+   se valida con `doas -C` antes de instalarlo con modo 400.
 7. `quitar`: desinstala lo que el repo ya no usa porque lo sustituye otra
    cosa: sudo (doas), feh (xwallpaper y nsxiv), gammastep (sct), autorandr
    (`pantallas`), blueman y pavucontrol (scripts `bluetooth` y `volumen`),
    pinentry-gtk (pinentry-dmenu), vlc (mpv), btop, NetworkManager y tlp-rdw
-   (wpa_supplicant, dhcpcd y el script `wifi`), rtkit y elogind (turnstile).
-   sudo se puede quitar gracias a `sistema/etc/xbps.d/sin-sudo.conf`
-   (base-system depende de él), y solo se quita si `/etc/doas.conf` ya está
-   instalado.
+   (wpa_supplicant, dhcpcd y el script `wifi`), rtkit, elogind (turnstile),
+   xss-lock (`inactivo`, con xssstate), chrony (openntpd), avahi y nss-mdns
+   (también los quita de `/etc/nsswitch.conf`) y nemo con upower (yazi; con
+   nemo se van gvfs y udisks2). sudo se puede quitar gracias a
+   `sistema/etc/xbps.d/sin-sudo.conf` (base-system depende de él), y solo se
+   quita si `/etc/doas.conf` ya está instalado.
 
 Después hay que cerrar sesión y volver a entrar (por los grupos) y lanzar
 `startx`.
@@ -85,9 +87,9 @@ elogind es el logind de systemd por separado, y aquí sobra:
 - Los dispositivos (sonido, vídeo, entrada, bluetooth) van por los grupos del
   usuario, no por las ACL que ponía elogind a la sesión activa.
 
-Lo que deja de ir: montar discos desde un gestor de archivos (udisks2 pide a
-polkit una sesión activa, que ya no hay). Las memorias USB las monta
-`automontaje`.
+Lo que deja de ir: montar discos desde un gestor de archivos gráfico (udisks2
+pedía a polkit una sesión activa; ya no hay ni gestor ni udisks2). Las
+memorias USB las monta `automontaje`.
 
 ## Recompilar tras cambiar la configuración
 
@@ -198,8 +200,9 @@ ventanas (parches restartsig y preserveonrestart).
   con la clave SSH desbloqueada (para no sacar pinentry) y lo reintenta cada
   hora. `marcadores ya` la sube en el momento. Para restaurar: Firefox >
   Marcadores > Administrar marcadores > Importar y respaldar > Restaurar.
-- Tras 30 minutos sin tocar nada se bloquea con slock (`xss-lock`) y un
-  minuto después se apaga la pantalla.
+- Tras 30 minutos sin tocar nada se bloquea con slock (`inactivo`, que mira
+  el salvapantallas de X con `xssstate`) y un minuto después se apaga la
+  pantalla. Los vídeos que piden no apagarla (mpv, Firefox) lo evitan.
 - Memorias USB y tarjetas SD: el servicio `automontaje` (runit, como root)
   las monta en `/mnt/ETIQUETA`, o en `/mnt/sdXY` si no tienen etiqueta, y
   las desmonta al sacarlas, con una notificación. FAT, exFAT y NTFS quedan a
@@ -207,6 +210,10 @@ ventanas (parches restartsig y preserveonrestart).
   memoria en la que se ha escrito, `sync` (o `doas umount /mnt/...`).
 - Carpetas del usuario en inglés y sin tildes (`user-dirs.dirs`):
   Documents, Downloads e Images.
+- Las carpetas ("Abrir carpeta" en Firefox, `xdg-open`) se abren en yazi
+  dentro de st (`home/.local/share/applications/yazi-st.desktop`).
+- `ex archivo...` descomprime casi cualquier cosa con `bsdtar` (función de
+  `.bashrc`).
 
 ## Notas
 

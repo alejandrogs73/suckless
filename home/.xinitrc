@@ -35,10 +35,10 @@ luz &
 bateria &
 marcadores &
 
-# Bloquear con slock tras 30 minutos sin tocar nada, y apagar la pantalla un
-# minuto después. Al suspender ya bloquea el hook de zzz (--ignore-sleep).
+# Bloquear con slock tras 30 minutos sin tocar nada (salvapantallas de X,
+# lo vigila inactivo) y apagar la pantalla un minuto después.
 xset s 1800 1800
 xset dpms 0 0 1860
-xss-lock --ignore-sleep -- slock &
+inactivo &
 
 exec dwm

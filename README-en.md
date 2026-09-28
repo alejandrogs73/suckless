@@ -54,21 +54,24 @@ for example) and repeated safely:
 6. `sistema` (system): copies `sistema/` into `/`, sets up
    `wpa_supplicant.conf` so wheel users can use `wpa_cli` without root and
    save networks, enables the runit services (dbus, turnstiled,
-   wpa_supplicant, dhcpcd, bluetoothd, acpid, chronyd, tlp, automontaje,
-   cupsd), removes NetworkManager, elogind and polkitd (if something asks for
-   polkit, like udisks2 or libvirt, D-Bus starts it on its own) and adds the
-   user to the audio, video, input, network, bluetooth, lpadmin (printer
-   management) and `_pipewire` (realtime priority for audio without rtkit)
-   groups. `doas.conf` is checked with `doas -C` before it is installed with
-   mode 400.
+   wpa_supplicant, dhcpcd, bluetoothd, acpid, openntpd, tlp, automontaje,
+   cupsd), removes NetworkManager, elogind, chronyd, avahi-daemon (the printer
+   has a fixed IP) and polkitd (if something asks for polkit, like libvirt,
+   D-Bus starts it on its own) and adds the user to the audio, video, input,
+   network, bluetooth, lpadmin (printer management) and `_pipewire` (realtime
+   priority for audio without rtkit) groups. `doas.conf` is checked with `doas
+   -C` before it is installed with mode 400.
 7. `quitar` (remove): uninstalls what the repo no longer uses because
    something else replaces it: sudo (doas), feh (xwallpaper and nsxiv),
    gammastep (sct), autorandr (`pantallas`), blueman and pavucontrol (the
    `bluetooth` and `volumen` scripts), pinentry-gtk (pinentry-dmenu), vlc
    (mpv), btop, NetworkManager and tlp-rdw (wpa_supplicant, dhcpcd and the
-   `wifi` script), rtkit and elogind (turnstile). sudo can be removed thanks
-   to `sistema/etc/xbps.d/sin-sudo.conf` (base-system depends on it), and it
-   is only removed once `/etc/doas.conf` is installed.
+   `wifi` script), rtkit, elogind (turnstile), xss-lock (`inactivo`, with
+   xssstate), chrony (openntpd), avahi and nss-mdns (also removed from
+   `/etc/nsswitch.conf`) and nemo with upower (yazi; gvfs and udisks2 go with
+   nemo). sudo can be removed thanks to `sistema/etc/xbps.d/sin-sudo.conf`
+   (base-system depends on it), and it is only removed once `/etc/doas.conf`
+   is installed.
 
 Afterwards, log out and back in (for the groups) and run `startx`.
 
@@ -88,9 +91,9 @@ elogind is systemd's logind on its own, and it is not needed here:
 - Devices (sound, video, input, bluetooth) are reached through the user's
   groups, not through the ACLs elogind gave the active session.
 
-What stops working: mounting disks from a file manager (udisks2 asks polkit
-for an active session, and there is none). USB sticks are mounted by
-`automontaje`.
+What stops working: mounting disks from a graphical file manager (udisks2
+asked polkit for an active session; now there is neither a file manager nor
+udisks2). USB sticks are mounted by `automontaje`.
 
 ## Rebuilding after changing the config
 
@@ -201,8 +204,9 @@ preserveonrestart patches).
   when the SSH key is already unlocked (so pinentry never pops up) and
   retries every hour. `marcadores ya` uploads it right away. To restore:
   Firefox > Bookmarks > Manage bookmarks > Import and Backup > Restore.
-- After 30 minutes idle the screen locks with slock (`xss-lock`) and one
-  minute later it turns off.
+- After 30 minutes idle the screen locks with slock (`inactivo`, which
+  watches the X screensaver with `xssstate`) and one minute later it turns
+  off. Videos that ask to keep the screen on (mpv, Firefox) prevent it.
 - USB sticks and SD cards: the `automontaje` service (runit, as root) mounts
   them in `/mnt/LABEL`, or `/mnt/sdXY` if they have no label, and unmounts
   them when removed, with a notification. FAT, exFAT and NTFS are owned by
@@ -210,6 +214,10 @@ preserveonrestart patches).
   wrote to, run `sync` (or `doas umount /mnt/...`).
 - User folders in English and without accents (`user-dirs.dirs`):
   Documents, Downloads and Images.
+- Folders ("Open folder" in Firefox, `xdg-open`) open in yazi inside st
+  (`home/.local/share/applications/yazi-st.desktop`).
+- `ex file...` extracts almost anything with `bsdtar` (a `.bashrc`
+  function).
 
 ## Notes
 
