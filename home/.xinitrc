@@ -13,8 +13,7 @@ if [ -z "$DBUS_SESSION_BUS_ADDRESS" ]; then
 	exec dbus-run-session -- sh "$HOME/.xinitrc"
 fi
 
-# Apps Qt con el tema de qt5ct/qt6ct (Everforest, Papirus). El plugin de
-# qt6ct también responde a "qt5ct", así que vale para Qt 5 y Qt 6.
+# Apps Qt 5 (las ventanas de hplip) con el tema de qt5ct (Everforest, Papirus).
 export QT_QPA_PLATFORMTHEME=qt5ct
 
 # Teclado y pantallas primero. pantallas (sistema/usr/local/bin) las pone en
@@ -23,9 +22,12 @@ export QT_QPA_PLATFORMTHEME=qt5ct
 setxkbmap es
 pantallas
 
-pipewire &
-wireplumber &
-pipewire-pulse &
+# Audio. Si alguno se cae, vuelve solo al segundo (sin wireplumber no hay
+# ni altavoces ni bluetooth: todo sale por "Dummy Output"). Al cerrar X se
+# acaba el bucle.
+for p in pipewire wireplumber pipewire-pulse; do
+	while xset q >/dev/null 2>&1; do "$p"; sleep 1; done &
+done
 
 dunst &
 picom &

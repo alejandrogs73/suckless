@@ -37,13 +37,14 @@ for example) and repeated safely:
    editing `~/.bashrc` edits the repo. Links to files deleted from the repo
    are removed. It also creates the user folders and
    sets `~/.ssh` to 700.
-4. `gtk`: builds the [Everforest GTK](https://github.com/Fausto-Korpsvart/Everforest-GTK-Theme)
-   theme (green, dark, medium palette) in `~/.themes` from a pinned commit,
-   links it for GTK 4 apps and makes the Papirus folders green. Icons are
-   Papirus-Dark everywhere. Qt 5 and Qt 6 apps use qt5ct/qt6ct
-   (`QT_QPA_PLATFORMTHEME` in `.xinitrc`) with the Fusion style and an
-   Everforest palette (`home/.config/qt*ct/`). If a `papirus-icon-theme`
-   update turns the folders blue again, just run this step again.
+4. `gtk`: builds the [Everforest
+   GTK](https://github.com/Fausto-Korpsvart/Everforest-GTK-Theme) theme
+   (green, dark, medium palette) in `~/.themes` from a pinned commit, links it
+   for GTK 4 apps and makes the Papirus folders green. Icons are Papirus-Dark
+   everywhere. Qt 5 apps (the hplip windows) use qt5ct (`QT_QPA_PLATFORMTHEME`
+   in `.xinitrc`) with the Fusion style and an Everforest palette
+   (`home/.config/qt5ct/`). If a `papirus-icon-theme` update turns the folders
+   blue again, just run this step again.
 5. `gnupg`: for after copying `~/.gnupg` by hand (from a USB stick, for
    example). It fixes the permissions, sets `pinentry-dmenu` with the dmenu
    colours (`pinentry-curses` on a tty: `home/.local/bin/pinentry-menu`
@@ -56,11 +57,12 @@ for example) and repeated safely:
    save networks, enables the runit services (dbus, turnstiled,
    wpa_supplicant, dhcpcd, bluetoothd, acpid, openntpd, tlp, automontaje,
    cupsd), removes NetworkManager, elogind, chronyd, avahi-daemon (the printer
-   has a fixed IP) and polkitd (if something asks for polkit, like libvirt,
-   D-Bus starts it on its own) and adds the user to the audio, video, input,
-   network, bluetooth, lpadmin (printer management) and `_pipewire` (realtime
-   priority for audio without rtkit) groups. `doas.conf` is checked with `doas
-   -C` before it is installed with mode 400.
+   has a fixed IP), sshd (nobody SSHes into the laptop), nix-daemon and
+   polkitd (if something asks for polkit, like libvirt, D-Bus starts it on its
+   own) and adds the user to the audio, video, input, network, bluetooth,
+   lpadmin (printer management) and `_pipewire` (realtime priority for audio
+   without rtkit) groups. `doas.conf` is checked with `doas -C` before it is
+   installed with mode 400.
 7. `quitar` (remove): uninstalls what the repo no longer uses because
    something else replaces it: sudo (doas), feh (xwallpaper and nsxiv),
    gammastep (sct), autorandr (`pantallas`), blueman and pavucontrol (the
@@ -68,15 +70,14 @@ for example) and repeated safely:
    (mpv), btop, NetworkManager and tlp-rdw (wpa_supplicant, dhcpcd and the
    `wifi` script), rtkit, elogind (turnstile), xss-lock (`inactivo`, with
    xssstate), chrony (openntpd), avahi and nss-mdns (also removed from
-   `/etc/nsswitch.conf`) and nemo with upower (yazi; gvfs and udisks2 go with
-   nemo). sudo can be removed thanks to `sistema/etc/xbps.d/sin-sudo.conf`
+   `/etc/nsswitch.conf`), nemo with upower (yazi; gvfs and udisks2 go with
+   nemo), obs and qt6ct, and nix (webcord; Discord runs in Firefox). Once the
+   nix package is gone, it also deletes `/nix` and the user's Nix profile.
+   sudo can be removed thanks to `sistema/etc/xbps.d/sin-sudo.conf`
    (base-system depends on it), and it is only removed once `/etc/doas.conf`
    is installed.
 
 Afterwards, log out and back in (for the groups) and run `startx`.
-
-Nix is not installed: the little that comes from it (webcord) is installed by
-hand.
 
 ## Without elogind
 
@@ -189,6 +190,9 @@ preserveonrestart patches).
   (the laptop one on the left and as primary) at startup and whenever one is
   plugged or unplugged (udev rule in `sistema/`), then repaints the
   wallpaper with `xwallpaper`.
+- Audio: `.xinitrc` runs pipewire, wireplumber and pipewire-pulse in a loop,
+  so if one of them dies it comes back a second later (without wireplumber
+  everything goes to "Dummy Output").
 - WiFi: `wifi` scans with `wpa_cli` and lists the networks in dmenu by
   signal (`*` is the current one). For a new network it asks for the
   password (hidden while typing) and saves it in

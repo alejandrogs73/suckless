@@ -23,7 +23,7 @@ PAQUETES="
 	wpa_supplicant dhcpcd bluez acpid openntpd tlp
 	cups cups-filters hplip
 	font-firacode nerd-fonts-symbols-ttf papirus-icon-theme papirus-folders
-	sassc gnome-themes-extra qt5ct qt6ct
+	sassc gnome-themes-extra qt5ct
 
 	opendoas gnupg pinentry-dmenu
 	firefox thunderbird mpv neovim git fuse-sshfs unzip
@@ -38,8 +38,9 @@ SERVICIOS="dbus turnstiled wpa_supplicant dhcpcd bluetoothd acpid openntpd tlp a
 # La red la llevan wpa_supplicant y dhcpcd. polkitd no hace falta como
 # servicio: si algo lo pide (libvirt), D-Bus lo arranca. turnstiled sustituye
 # a elogind y openntpd a chronyd. avahi-daemon (mDNS) no hace falta: la
-# impresora va por IP fija.
-SERVICIOS_FUERA="NetworkManager polkitd elogind chronyd avahi-daemon"
+# impresora va por IP fija. Al portátil no se entra por SSH (sshd) y Nix
+# (nix-daemon) ya no se usa.
+SERVICIOS_FUERA="NetworkManager polkitd elogind chronyd avahi-daemon sshd nix-daemon"
 # _pipewire da prioridad de tiempo real al audio sin rtkit
 # (/etc/security/limits.d/25-pw-rlimits.conf, de pipewire).
 GRUPOS="audio video input network bluetooth lpadmin _pipewire"
@@ -50,11 +51,12 @@ GRUPOS="audio video input network bluetooth lpadmin _pipewire"
 # _pipewire), elogind (turnstile; Xorg arranca como root con Xorg.wrap y la
 # tapa y los botones ya los lleva acpid), xss-lock (inactivo, con xssstate),
 # chrony (openntpd), avahi y nss-mdns (nada los usa) y nemo con upower (yazi;
-# con nemo se van gvfs y udisks2).
+# con nemo se van gvfs y udisks2), obs y qt6ct, y nix (webcord: Discord va en
+# Firefox).
 QUITAR="
 	sudo feh gammastep autorandr blueman pavucontrol pinentry-gtk
 	gtk-engine-murrine vlc btop NetworkManager tlp-rdw rtkit elogind
-	xss-lock chrony avahi nss-mdns nemo upower
+	xss-lock chrony avahi nss-mdns nemo upower obs qt6ct nix
 "
 
 msg() { printf '\033[1;32m==>\033[0m %s\n' "$*"; }
@@ -268,6 +270,14 @@ quitar() {
 	if grep -q '^hosts:.*mdns' /etc/nsswitch.conf; then
 		root sed -i '/^hosts:/s/ mdns[a-z0-9_]*\( \[NOTFOUND=return\]\)\{0,1\}//g' \
 			/etc/nsswitch.conf
+	fi
+
+	# Sin el paquete nix, su almacén (/nix) y los enlaces del perfil sobran
+	if ! xbps-query nix >/dev/null 2>&1 && [ -d /nix ]; then
+		msg "Borrando /nix y el perfil de Nix"
+		root rm -rf /nix
+		rm -rf "$HOME/.nix-profile" "$HOME/.nix-defexpr" "$HOME/.nix-channels" \
+			"$HOME/.local/state/nix" "$HOME/.cache/nix"
 	fi
 
 	# Lo que puso aquí una versión anterior de sistema/ para elogind

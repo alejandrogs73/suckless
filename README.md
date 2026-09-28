@@ -33,12 +33,13 @@ Hace siete pasos, que también se pueden lanzar por separado
    editar el repo. Los enlaces a archivos que se han borrado del repo se
    quitan. También crea las carpetas del usuario y deja `~/.ssh` en
    700.
-4. `gtk`: compila el tema [Everforest GTK](https://github.com/Fausto-Korpsvart/Everforest-GTK-Theme)
-   (verde, oscuro, paleta medium) en `~/.themes`, en una versión fija, y lo
-   enlaza para las apps de GTK 4, y pone verdes las carpetas de Papirus. Los
-   iconos son Papirus-Dark en todo. Las apps Qt 5 y Qt 6 usan qt5ct/qt6ct
+4. `gtk`: compila el tema [Everforest
+   GTK](https://github.com/Fausto-Korpsvart/Everforest-GTK-Theme) (verde,
+   oscuro, paleta medium) en `~/.themes`, en una versión fija, y lo enlaza
+   para las apps de GTK 4, y pone verdes las carpetas de Papirus. Los iconos
+   son Papirus-Dark en todo. Las apps Qt 5 (las ventanas de hplip) usan qt5ct
    (`QT_QPA_PLATFORMTHEME` en `.xinitrc`) con el estilo Fusion y una paleta
-   Everforest (`home/.config/qt*ct/`). Si una actualización de
+   Everforest (`home/.config/qt5ct/`). Si una actualización de
    `papirus-icon-theme` devuelve las carpetas a azul, basta con repetir este
    paso.
 5. `gnupg`: para después de copiar `~/.gnupg` a mano (de un USB, por
@@ -52,26 +53,27 @@ Hace siete pasos, que también se pueden lanzar por separado
    los de wheel usen `wpa_cli` sin root y guarden redes, activa los servicios
    de runit (dbus, turnstiled, wpa_supplicant, dhcpcd, bluetoothd, acpid,
    openntpd, tlp, automontaje, cupsd), quita NetworkManager, elogind, chronyd,
-   avahi-daemon (la impresora va por IP fija) y polkitd (si algo pide polkit,
-   como libvirt, D-Bus lo arranca solo) y añade el usuario a los grupos audio,
-   video, input, network, bluetooth, lpadmin (para gestionar impresoras) y
-   `_pipewire` (prioridad de tiempo real para el audio sin rtkit). `doas.conf`
-   se valida con `doas -C` antes de instalarlo con modo 400.
+   avahi-daemon (la impresora va por IP fija), sshd (al portátil no se entra
+   por SSH), nix-daemon y polkitd (si algo pide polkit, como libvirt, D-Bus lo
+   arranca solo) y añade el usuario a los grupos audio, video, input, network,
+   bluetooth, lpadmin (para gestionar impresoras) y `_pipewire` (prioridad de
+   tiempo real para el audio sin rtkit). `doas.conf` se valida con `doas -C`
+   antes de instalarlo con modo 400.
 7. `quitar`: desinstala lo que el repo ya no usa porque lo sustituye otra
    cosa: sudo (doas), feh (xwallpaper y nsxiv), gammastep (sct), autorandr
    (`pantallas`), blueman y pavucontrol (scripts `bluetooth` y `volumen`),
    pinentry-gtk (pinentry-dmenu), vlc (mpv), btop, NetworkManager y tlp-rdw
    (wpa_supplicant, dhcpcd y el script `wifi`), rtkit, elogind (turnstile),
    xss-lock (`inactivo`, con xssstate), chrony (openntpd), avahi y nss-mdns
-   (también los quita de `/etc/nsswitch.conf`) y nemo con upower (yazi; con
-   nemo se van gvfs y udisks2). sudo se puede quitar gracias a
-   `sistema/etc/xbps.d/sin-sudo.conf` (base-system depende de él), y solo se
-   quita si `/etc/doas.conf` ya está instalado.
+   (también los quita de `/etc/nsswitch.conf`), nemo con upower (yazi; con
+   nemo se van gvfs y udisks2), obs y qt6ct, y nix (webcord; Discord va en
+   Firefox). Sin el paquete nix, borra también `/nix` y el perfil de Nix del
+   usuario. sudo se puede quitar gracias a `sistema/etc/xbps.d/sin-sudo.conf`
+   (base-system depende de él), y solo se quita si `/etc/doas.conf` ya está
+   instalado.
 
 Después hay que cerrar sesión y volver a entrar (por los grupos) y lanzar
 `startx`.
-
-Nix no se instala: lo poco que viene de ahí (webcord) se instala a mano.
 
 ## Sin elogind
 
@@ -186,6 +188,9 @@ ventanas (parches restartsig y preserveonrestart).
   `xrandr` (la del portátil a la izquierda y como principal) al arrancar y
   cada vez que se conecta o desconecta una (regla de udev en `sistema/`), y
   vuelve a pintar el fondo con `xwallpaper`.
+- Audio: `.xinitrc` lanza pipewire, wireplumber y pipewire-pulse en un bucle,
+  así que si alguno se cae vuelve solo al segundo (sin wireplumber todo sale
+  por "Dummy Output").
 - WiFi: `wifi` busca redes con `wpa_cli` y las enseña en dmenu por señal
   (`*` la actual). Si la red es nueva pide la contraseña (no se ve al
   escribirla) y la guarda en `/etc/wpa_supplicant/wpa_supplicant.conf` solo

@@ -16,11 +16,6 @@ export SSH_AUTH_SOCK=$(gpgconf --list-dirs agent-ssh-socket)
 export GPG_TTY=$(tty)
 gpg-connect-agent updatestartuptty /bye >/dev/null 2>&1
 
-# Cargar Nix (Asegura que los comandos de Nix funcionen si entras sin X11)
-if [ -e /etc/profile.d/nix.sh ]; then 
-    . /etc/profile.d/nix.sh
-fi
-
 # Editor por defecto
 export EDITOR="nvim" # Cambia a "vim" si te gusta más sufrir/disfrutar
 
@@ -93,6 +88,3 @@ ex() {
         esac
     done
 }
-
-# Forzar IPv4 en Nix (IPv6 del sistema está roto)
-export NIX_CURL_FLAGS=-4
