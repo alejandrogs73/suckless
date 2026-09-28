@@ -30,7 +30,8 @@ Hace siete pasos, que también se pueden lanzar por separado
 2. `suckless`: compila e instala los programas en `/usr/local`.
 3. `enlaces`: enlaza cada archivo de `home/` en `~`. Si ya existía un archivo
    distinto, lo guarda como `.bak`. Como son enlaces, editar `~/.bashrc` es
-   editar el repo. También crea las carpetas del usuario y deja `~/.ssh` en
+   editar el repo. Los enlaces a archivos que se han borrado del repo se
+   quitan. También crea las carpetas del usuario y deja `~/.ssh` en
    700.
 4. `gtk`: compila el tema [Everforest GTK](https://github.com/Fausto-Korpsvart/Everforest-GTK-Theme)
    (verde, oscuro, paleta medium) en `~/.themes`, en una versión fija, y lo

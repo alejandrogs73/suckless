@@ -34,7 +34,8 @@ for example) and repeated safely:
 2. `suckless`: builds the programs and installs them in `/usr/local`.
 3. `enlaces` (links): symlinks every file in `home/` into `~`. If a different
    file was already there, it is kept as `.bak`. Since they are symlinks,
-   editing `~/.bashrc` edits the repo. It also creates the user folders and
+   editing `~/.bashrc` edits the repo. Links to files deleted from the repo
+   are removed. It also creates the user folders and
    sets `~/.ssh` to 700.
 4. `gtk`: builds the [Everforest GTK](https://github.com/Fausto-Korpsvart/Everforest-GTK-Theme)
    theme (green, dark, medium palette) in `~/.themes` from a pinned commit,

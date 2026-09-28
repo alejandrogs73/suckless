@@ -104,6 +104,14 @@ enlaces() {
 	done
 	cd "$DIR"
 
+	# Los enlaces a archivos que ya no están en home/ (borrados del repo)
+	find "$HOME" -xdev -type l -lname "$DIR/home/*" ! -exec test -e {} \; -print |
+		while read -r l; do
+			rm "$l"
+			rmdir "$(dirname "$l")" 2>/dev/null || true
+			echo "  ${l#"$HOME"/} (ya no está en el repo: quitado)"
+		done
+
 	# Las carpetas de home/.config/user-dirs.dirs (y la de las capturas)
 	mkdir -p "$HOME/Documents" "$HOME/Downloads" "$HOME/Images/Screenshots"
 	# ssh no quiere ~/.ssh accesible para otros
