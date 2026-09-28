@@ -165,6 +165,11 @@ y qué zona es cada una lo marcan los bytes `\001`...`\004` de
 | BT | `OFF`, o el dispositivo conectado y su batería si la da (`VJ 901 100%`) | Menú `bluetooth`: conectar, desconectar, buscar y emparejar, apagar | | Encender o apagar | |
 | Fecha | Día y hora | Calendario del mes (`calendario`) | | | |
 
+VOL y BT no se miran cada 2 s como el resto, sino cada 10 s o en cuanto
+llega `SIGUSR1` (componente `lento` del `config.h` de slstatus): lo mandan
+`volumen`, `bluetooth`, `wifi` y los clics, así que lo que cambias tú se ve al
+momento y wpctl y bluetoothctl no se lanzan cada 2 s.
+
 Si se cambia el `config.h` de dwm, hay que reinstalarlo y reiniciarlo para
 que los clics nuevos funcionen: `pkill -HUP dwm` lo relanza sin cerrar las
 ventanas (parches restartsig y preserveonrestart).
@@ -231,5 +236,7 @@ ventanas (parches restartsig y preserveonrestart).
 - En st, Ctrl+Shift+clic derecho sobre una imagen la abre en `nsxiv`.
 - st muestra imágenes con el protocolo de gráficos de kitty; yazi lo detecta
   solo y enseña las vistas previas sin ueberzugpp.
+- slstatus.c tiene un cambio a mano (no es un parche): cuenta las señales
+  `SIGUSR1` para que `lento` sepa cuándo refrescar.
 - slock está modificado a mano (no es un parche): reloj, fecha, batería y
   una barra inferior con el color del estado.

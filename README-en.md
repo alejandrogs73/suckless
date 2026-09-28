@@ -168,6 +168,11 @@ and which area is which is marked by the `\001`...`\004` bytes in
 | BT | `OFF`, or the connected device and its battery if it reports it (`VJ 901 100%`) | `bluetooth` menu: connect, disconnect, scan and pair, power off | | Power on or off | |
 | Date | Day and time | This month's calendar (`calendario`) | | | |
 
+VOL and BT are not read every 2 s like the rest, but every 10 s or as soon as
+`SIGUSR1` arrives (`lento` component in slstatus's `config.h`): `volumen`,
+`bluetooth`, `wifi` and the clicks send it, so your own changes show up at
+once and wpctl and bluetoothctl are not spawned every 2 s.
+
 After changing dwm's `config.h`, reinstall and restart it for new clicks to
 work: `pkill -HUP dwm` restarts it without closing windows (restartsig and
 preserveonrestart patches).
@@ -236,5 +241,7 @@ preserveonrestart patches).
 - In st, Ctrl+Shift+right click on an image opens it in `nsxiv`.
 - st shows images with the kitty graphics protocol; yazi detects it on its
   own and shows previews without ueberzugpp.
+- slstatus.c has a hand-made change (not a patch): it counts `SIGUSR1`
+  signals so `lento` knows when to refresh.
 - slock is modified by hand (not a patch): clock, date, battery and a bottom
   bar with the state colour.

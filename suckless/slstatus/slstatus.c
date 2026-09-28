@@ -19,6 +19,7 @@ struct arg {
 
 char buf[1024];
 static volatile sig_atomic_t done;
+static volatile sig_atomic_t usr1; /* SIGUSR1 recibidas, para lento() en config.h */
 static Display *dpy;
 
 #include "config.h"
@@ -28,6 +29,8 @@ terminate(const int signo)
 {
 	if (signo != SIGUSR1)
 		done = 1;
+	else
+		usr1++;
 }
 
 static void

@@ -38,6 +38,45 @@ red(const char *unused)
 }
 
 /*
+ * run_command, pero solo cada LENTO segundos o en cuanto llega SIGUSR1 (lo
+ * mandan los scripts volumen, bluetooth y wifi y los clics en la barra). Así
+ * VOL y BT no lanzan wpctl y bluetoothctl cada 2 s; lo que cambie por otro
+ * lado tarda como mucho LENTO segundos en verse. La cuenta de SIGUSR1 (usr1)
+ * la lleva slstatus.c.
+ */
+#define LENTO 10
+
+static const char *
+lento(const char *cmd)
+{
+	static struct {
+		const char *cmd;
+		char out[256];
+		int ok;
+		sig_atomic_t usr1;
+		time_t t;
+	} c[4];
+	struct timespec ahora;
+	const char *res;
+	size_t i;
+
+	clock_gettime(CLOCK_MONOTONIC, &ahora);
+	for (i = 0; i < LEN(c) && c[i].cmd && c[i].cmd != cmd; i++)
+		;
+	if (i == LEN(c))
+		return run_command(cmd);
+	if (c[i].cmd && c[i].usr1 == usr1 && ahora.tv_sec - c[i].t < LENTO)
+		return c[i].ok ? c[i].out : NULL;
+
+	c[i].cmd = cmd;
+	c[i].usr1 = usr1;
+	c[i].t = ahora.tv_sec;
+	if ((c[i].ok = (res = run_command(cmd)) != NULL))
+		snprintf(c[i].out, sizeof(c[i].out), "%s", res);
+	return c[i].ok ? c[i].out : NULL;
+}
+
+/*
  * Los bytes \001 a \004 delimitan las zonas clicables de la barra
  * (parche statuscmd de dwm): la red, el volumen, el bluetooth y la fecha. Lo que hace
  * cada clic está en statuscmds, en el config.h de dwm.
@@ -50,11 +89,11 @@ static const struct arg args[] = {
 	{ battery_perc,     "[ BAT: %s%%",                "BAT1" },
 	{ battery_state,    " %s ] ",                     "BAT1" },
 	/* mismo volumen que maneja wpctl (PipeWire); MIC OFF si el micro está silenciado */
-	{ run_command,      "\002[ VOL: %s ]\002 ",       "wpctl get-volume @DEFAULT_AUDIO_SINK@ | awk '{ printf \"%d%%\", $2 * 100 + 0.5 } /MUTED/ { printf \" MUT\" }'; "
+	{ lento,            "\002[ VOL: %s ]\002 ",       "wpctl get-volume @DEFAULT_AUDIO_SINK@ | awk '{ printf \"%d%%\", $2 * 100 + 0.5 } /MUTED/ { printf \" MUT\" }'; "
 	                                                  "wpctl get-volume @DEFAULT_AUDIO_SOURCE@ | grep -q MUTED && printf ' MIC OFF'" },
 	/* OFF si el adaptador está apagado; si no, el primer dispositivo conectado
 	 * y su batería, si la da ("Battery Percentage: 0x64 (100)" -> " 100%") */
-	{ run_command,      "\003[ BT: %s ]\003 ",        "bluetoothctl show | grep -q 'Powered: yes' || { echo OFF; exit; }; "
+	{ lento,            "\003[ BT: %s ]\003 ",        "bluetoothctl show | grep -q 'Powered: yes' || { echo OFF; exit; }; "
 	                                                  "set -- $(bluetoothctl devices Connected | head -1); [ $# -gt 0 ] || exit; "
 	                                                  "m=$2; shift 2; printf %s \"$*\"; "
 	                                                  "bluetoothctl info \"$m\" | awk -F'[()]' '/Battery Percentage/ { printf \" %s%%\", $2 }'" },
