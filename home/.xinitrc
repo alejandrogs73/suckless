@@ -8,7 +8,7 @@ if [ -z "$XDG_RUNTIME_DIR" ]; then
 fi
 
 # Abrir el bus de sesión D-Bus antes de lanzar nada, para que pipewire,
-# wireplumber, dunst, blueman... y dwm compartan el mismo bus.
+# wireplumber, dunst... y dwm compartan el mismo bus.
 if [ -z "$DBUS_SESSION_BUS_ADDRESS" ]; then
 	exec dbus-run-session -- sh "$HOME/.xinitrc"
 fi
@@ -17,13 +17,11 @@ fi
 # qt6ct también responde a "qt5ct", así que vale para Qt 5 y Qt 6.
 export QT_QPA_PLATFORMTHEME=qt5ct
 
-# Teclado y monitores primero; el fondo se pinta después con la geometría final.
-# autorandr pone las pantallas conectadas en fila (la del portátil a la
-# izquierda); al conectar o desconectar una, lo repite solo (regla de udev en
-# sistema/) y vuelve a pintar el fondo (~/.config/autorandr/postswitch).
+# Teclado y pantallas primero. pantallas (sistema/usr/local/bin) las pone en
+# fila, con la del portátil a la izquierda, y pinta el fondo; al conectar o
+# desconectar una, lo repite solo (regla de udev en sistema/).
 setxkbmap es
-autorandr --change --default horizontal
-feh --no-fehbg --bg-fill "$HOME/.local/share/wallpaper.jpg" &
+pantallas
 
 pipewire &
 wireplumber &
@@ -31,10 +29,9 @@ pipewire-pulse &
 
 dunst &
 picom &
-blueman-applet &
 slstatus &
 clipmenud &
-gammastep &
+luz &
 bateria &
 marcadores &
 

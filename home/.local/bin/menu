@@ -1,0 +1,5 @@
+#!/bin/sh
+# dmenu con la fuente y los colores de dwm, para los scripts de ~/.local/bin.
+# Uso: menu [opciones de dmenu]  (las que se pasen mandan sobre estas)
+exec dmenu -i -fn "Fira Code:size=11" \
+	-nb "#2d353b" -nf "#d3c6aa" -sb "#a7c080" -sf "#2d353b" "$@"

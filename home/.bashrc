@@ -61,13 +61,13 @@ alias mv='mv -i'
 
 # --- 4. Aliases para Void Linux (xbps) ---
 # Te ahorrarán teclear 'xbps-lo-que-sea' 40 veces al día
-alias xi='sudo xbps-install'        # Instalar paquete
-alias xu='sudo xbps-install -Su'    # Actualizar todo el sistema
+alias xi='doas xbps-install'        # Instalar paquete
+alias xu='doas xbps-install -Su'    # Actualizar todo el sistema
 alias xq='xbps-query -Rs'           # Buscar paquete en el repositorio
 alias xl='xbps-query -l'            # Listar paquetes instalados
-alias xr='sudo xbps-remove -R'      # Eliminar paquete y sus huérfanos
+alias xr='doas xbps-remove -R'      # Eliminar paquete y sus huérfanos
 
-alias esp32='sudo chmod a+rw /dev/ttyUSB0'
+alias esp32='doas chmod a+rw /dev/ttyUSB0'
 
 # --- 5. Funciones Útiles ---
 

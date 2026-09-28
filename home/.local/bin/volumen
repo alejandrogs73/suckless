@@ -1,14 +1,31 @@
 #!/bin/sh
 # Cambia el volumen o silencia la salida o el micro (PipeWire), refresca
 # slstatus y lo muestra en una notificación que se sustituye a sí misma.
-# Uso: volumen subir|bajar|silenciar|micro
+# "salida" elige con dmenu por dónde suena (altavoces, cascos...).
+# Uso: volumen subir|bajar|silenciar|micro|salida
 
 case $1 in
 subir)     wpctl set-volume -l 1.0 @DEFAULT_AUDIO_SINK@ 5%+ ;;
 bajar)     wpctl set-volume @DEFAULT_AUDIO_SINK@ 5%- ;;
 silenciar) wpctl set-mute @DEFAULT_AUDIO_SINK@ toggle ;;
 micro)     wpctl set-mute @DEFAULT_AUDIO_SOURCE@ toggle ;;
-*)         echo "uso: volumen subir|bajar|silenciar|micro" >&2; exit 1 ;;
+salida)
+	# Las salidas de "wpctl status" (sección Sinks de Audio), con * la actual:
+	# " │  *   86. Nombre [vol: 0.50]" -> "* 86. Nombre"
+	s=$(wpctl status | awk '
+		/Sinks:/ { dentro = 1; next }
+		dentro && !/[0-9]\./ { exit }
+		dentro {
+			sub(/^[^*0-9]*/, ""); actual = sub(/^\* */, "")
+			sub(/ *\[vol:.*/, ""); print (actual ? "* " : "  ") $0
+		}' | menu -p Salida:)
+	[ -n "$s" ] || exit 0
+	s=${s#??}
+	wpctl set-default "${s%%.*}"
+	exec notify-send -t 2000 -h string:x-dunst-stack-tag:volumen \
+		-i audio-speakers "Salida de audio" "${s#*. }"
+	;;
+*)         echo "uso: volumen subir|bajar|silenciar|micro|salida" >&2; exit 1 ;;
 esac
 
 pkill -USR1 -x slstatus

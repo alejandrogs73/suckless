@@ -1,15 +1,10 @@
 #!/bin/sh
 # Menú de apagado con dmenu (Mod+Shift+Escape en dwm). Apagar, reiniciar y
-# salir de dwm piden confirmación. Suspender, apagar y reiniciar usan sudo
-# sin contraseña (sistema/etc/sudoers.d/energia).
-
-menu() {
-	dmenu -i -p "$1" -fn "Fira Code:size=11" \
-		-nb "#2d353b" -nf "#d3c6aa" -sb "#a7c080" -sf "#2d353b"
-}
+# salir de dwm piden confirmación. Suspender, apagar y reiniciar usan doas
+# sin contraseña (sistema/etc/doas.conf).
 
 confirmar() {
-	[ "$(printf 'No\nSí\n' | menu "¿$1?")" = "Sí" ]
+	[ "$(printf 'No\nSí\n' | menu -p "¿$1?")" = "Sí" ]
 }
 
 opcion=$(printf '%s\n' \
@@ -17,12 +12,12 @@ opcion=$(printf '%s\n' \
 	"󰤄  Suspender" \
 	"󰍃  Salir de dwm" \
 	"󰜉  Reiniciar" \
-	"󰐥  Apagar" | menu "Sesión:")
+	"󰐥  Apagar" | menu -p "Sesión:")
 
 case $opcion in
 *Bloquear) slock ;;
-*Suspender) sudo -n zzz ;;
+*Suspender) doas -n zzz ;;
 *Salir*) confirmar "Salir de dwm" && pkill -TERM -x dwm ;;
-*Reiniciar) confirmar "Reiniciar" && sudo -n reboot ;;
-*Apagar) confirmar "Apagar" && sudo -n poweroff ;;
+*Reiniciar) confirmar "Reiniciar" && doas -n reboot ;;
+*Apagar) confirmar "Apagar" && doas -n poweroff ;;
 esac

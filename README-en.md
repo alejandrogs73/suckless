@@ -16,17 +16,18 @@ real names you type; this README explains what each one does.
 |---|---|
 | `suckless/` | The programs, each with its own `config.h` and patches |
 | `home/` | Files that go in `~`, at the same path (they are symlinked) |
-| `sistema/` | Files that go in `/` (acpid, zzz, elogind, udev, sudoers, runit) |
+| `sistema/` | Files that go in `/` (acpid, zzz, elogind, udev, doas, xbps, runit) |
 | `install.sh` | Installs everything on a fresh Void system |
 
 ## Install
 
-On a fresh Void install, as your normal user (it asks for sudo when needed):
+On a fresh Void install, as your normal user (it asks for the root
+password when needed: through sudo until doas is ready, then through doas):
 
     git clone ssh://forgejo@ssh.alejandrogs.es/alejandrogs73/suckless.git ~/suckless
     cd ~/suckless && ./install.sh
 
-It runs six steps, which can also be run on their own (`./install.sh enlaces`,
+It runs seven steps, which can also be run on their own (`./install.sh enlaces`,
 for example) and repeated safely:
 
 1. `paquetes` (packages): installs with xbps everything the setup uses.
@@ -37,15 +38,15 @@ for example) and repeated safely:
    sets `~/.ssh` to 700.
 4. `gtk`: builds the [Everforest GTK](https://github.com/Fausto-Korpsvart/Everforest-GTK-Theme)
    theme (green, dark, medium palette) in `~/.themes` from a pinned commit,
-   and links it for GTK 4 apps. It fixes the colours of the GTK 2 part (the
-   theme ships Gruvbox ones) and makes the Papirus folders green. Icons are
+   links it for GTK 4 apps and makes the Papirus folders green. Icons are
    Papirus-Dark everywhere. Qt 5 and Qt 6 apps use qt5ct/qt6ct
    (`QT_QPA_PLATFORMTHEME` in `.xinitrc`) with the Fusion style and an
    Everforest palette (`home/.config/qt*ct/`). If a `papirus-icon-theme`
    update turns the folders blue again, just run this step again.
 5. `gnupg`: for after copying `~/.gnupg` by hand (from a USB stick, for
-   example). It fixes the permissions, sets `pinentry-gtk` (falls back to
-   curses on a tty), enables gpg's SSH agent, adds the authentication subkeys
+   example). It fixes the permissions, sets `pinentry-dmenu` with the dmenu
+   colours (`pinentry-curses` on a tty: `home/.local/bin/pinentry-menu`
+   picks one), enables gpg's SSH agent, adds the authentication subkeys
    to `sshcontrol` and caches the passphrase for one hour. `.bashrc` already
    points `SSH_AUTH_SOCK` at the agent. If `~/.gnupg` does not exist yet, it
    does nothing.
@@ -53,8 +54,15 @@ for example) and repeated safely:
    (dbus, elogind, polkitd, NetworkManager, bluetoothd, acpid, chronyd, tlp,
    automontaje, cupsd), removes dhcpcd and wpa_supplicant (NetworkManager
    already manages the network) and adds the user to the audio, video, input,
-   network, bluetooth and lpadmin (printer management) groups. Files in
-   `sudoers.d` are checked with `visudo` and installed with mode 440.
+   network, bluetooth and lpadmin (printer management) groups. `doas.conf`
+   is checked with `doas -C` before it is installed with mode 400.
+7. `quitar` (remove): uninstalls what the repo no longer uses because
+   something else replaces it: sudo (doas), feh (xwallpaper and nsxiv),
+   gammastep (sct), autorandr (`pantallas`), blueman and pavucontrol (the
+   `bluetooth` and `volumen` scripts), pinentry-gtk (pinentry-dmenu), vlc
+   (mpv) and btop. sudo can be removed thanks to
+   `sistema/etc/xbps.d/sin-sudo.conf` (base-system depends on it), and it is
+   only removed once `/etc/doas.conf` is installed.
 
 Afterwards, log out and back in (for the groups) and run `startx`.
 
@@ -63,7 +71,7 @@ hand.
 
 ## Rebuilding after changing the config
 
-    cd suckless/dwm && make && sudo make install
+    cd suckless/dwm && make && doas make install
 
 ## Updating from upstream
 
@@ -110,6 +118,18 @@ The audio keys (and clicks on VOL in the bar) use the `volumen` script
 (`home/.local/bin/volumen`): it changes the volume with `wpctl`, refreshes
 slstatus and shows a notification with the level.
 
+The script menus (`apagado`, `bluetooth`, `volumen salida`...) use `menu`,
+which is dmenu with the dwm font and colours.
+
+### Bar clicks
+
+| Area | Left | Middle | Right | Wheel |
+|---|---|---|---|---|
+| Network | Connect to a network | | Full menu | |
+| VOL | Pick the audio output (`volumen salida`) | Mute | Mute the mic | Volume ± |
+| BT | Bluetooth menu (`bluetooth`): connect, disconnect, scan and pair, power off | | Power on or off | |
+| Date | This month's calendar | | | |
+
 Screenshots are saved in `~/Images/Screenshots`, copied to the clipboard and
 shown in a notification.
 
@@ -117,13 +137,14 @@ shown in a notification.
 
 - Logging in on tty1 starts `startx` automatically (`.bash_profile`); other
   ttys do not.
-- `.xinitrc` also starts `gammastep` (warm light from 20:00 to 8:00, with a
-  one-hour transition) and `bateria` (warns at 15 % and, in red, at 5 %; at
-  3 % it suspends with `sudo -n zzz`). Suspend, power off and reboot need no
-  password (`sistema/etc/sudoers.d/energia`).
-- Screens: `autorandr` lines them up (the laptop one on the left and as
-  primary) at startup and whenever one is plugged or unplugged (udev rule in
-  `sistema/`), then repaints the wallpaper.
+- `.xinitrc` also starts `luz` (warm light with `sct` from 20:00 to 8:00,
+  with a one-hour transition) and `bateria` (warns at 15 % and, in red, at
+  5 %; at 3 % it suspends with `doas -n zzz`). Suspend, power off and reboot
+  need no password (`sistema/etc/doas.conf`).
+- Screens: `pantallas` (`sistema/usr/local/bin`) lines them up with `xrandr`
+  (the laptop one on the left and as primary) at startup and whenever one is
+  plugged or unplugged (udev rule in `sistema/`), then repaints the
+  wallpaper with `xwallpaper`.
 - Left click on the date in the bar: this month's calendar in a notification
   (`calendario`), with today in green.
 - bash: 10 000-entry history, without duplicates and shared between
@@ -145,7 +166,7 @@ shown in a notification.
   them in `/mnt/LABEL`, or `/mnt/sdXY` if they have no label, and unmounts
   them when removed, with a notification. FAT, exFAT and NTFS are owned by
   the user; internal disks are never touched. Before pulling a stick you
-  wrote to, run `sync` (or `sudo umount /mnt/...`).
+  wrote to, run `sync` (or `doas umount /mnt/...`).
 - User folders in English and without accents (`user-dirs.dirs`):
   Documents, Downloads and Images.
 
@@ -163,6 +184,7 @@ shown in a notification.
     the combination with ligatures come from the `graphics-with-patches`
     branch of [st-graphics](https://github.com/sergei-grechanik/st-graphics),
     without boxdraw.
+- In st, Ctrl+Shift+right click on an image opens it in `nsxiv`.
 - st shows images with the kitty graphics protocol; yazi detects it on its
   own and shows previews without ueberzugpp.
 - slock is modified by hand (not a patch): clock, date, battery and a bottom

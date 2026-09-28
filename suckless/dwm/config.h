@@ -40,9 +40,6 @@ static const Rule rules[] = {
 	{ "st-256color",  NULL,              NULL,           0,         0,          1,          0,         -1 },
 	{ "st-float",     NULL,              NULL,           0,         1,          0,          1,         -1 }, /* st -c st-float (p. ej. nmtui) */
 	{ "Gimp",         NULL,              NULL,           0,         1,          0,          0,         -1 },
-	{ NULL,           "pavucontrol",     NULL,           0,         1,          0,          0,         -1 },
-	{ NULL,           "blueman-manager", NULL,           0,         1,          0,          0,         -1 },
-	{ "Pinentry-gtk-2", NULL,            NULL,           0,         1,          0,          1,         -1 }, /* contraseña de gpg/ssh */
 	{ "Firefox",      "Places",          NULL,           0,         1,          0,          0,         -1 }, /* biblioteca/descargas */
 	{ "Firefox",      "Toolkit",         NULL,           0,         1,          0,          0,         -1 }, /* picture-in-picture */
 	{ NULL,           NULL,              "Event Tester", 0,         0,          0,          1,         -1 }, /* xev */
@@ -104,17 +101,17 @@ static const StatusCmd statuscmds[] = {
 	  "1) st -c st-float -g 90x30 -e nmtui connect ;; "
 	  "3) st -c st-float -g 90x30 -e nmtui ;; "
 	  "esac", 1 },
-	/* volumen: izquierdo pavucontrol, central silenciar, derecho micro, rueda subir/bajar */
+	/* volumen: izquierdo elegir la salida, central silenciar, derecho micro, rueda subir/bajar */
 	{ "case $BUTTON in "
-	  "1) pavucontrol ;; "
+	  "1) volumen salida ;; "
 	  "2) " VOLMUTECMD " ;; "
 	  "3) " MICMUTECMD " ;; "
 	  "4) " VOLUPCMD " ;; "
 	  "5) " VOLDOWNCMD " ;; "
 	  "esac", 2 },
-	/* bluetooth: izquierdo blueman, derecho encender/apagar el adaptador */
+	/* bluetooth: izquierdo el menú (script bluetooth), derecho encender/apagar el adaptador */
 	{ "case $BUTTON in "
-	  "1) blueman-manager ;; "
+	  "1) bluetooth ;; "
 	  "3) if bluetoothctl show | grep -q 'Powered: yes'; "
 	  "then bluetoothctl power off; else bluetoothctl power on; fi >/dev/null" STATUSREFRESH " ;; "
 	  "esac", 3 },

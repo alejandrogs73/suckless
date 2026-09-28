@@ -1,0 +1,8 @@
+#!/bin/sh
+# pinentry de gpg-agent: pinentry-dmenu en X y pinentry-curses en una tty.
+# Los colores de pinentry-dmenu están en ~/.gnupg/pinentry-dmenu.conf
+# (lo escribe install.sh, paso gnupg).
+if [ -n "$DISPLAY" ]; then
+	exec pinentry-dmenu "$@"
+fi
+exec pinentry-curses "$@"

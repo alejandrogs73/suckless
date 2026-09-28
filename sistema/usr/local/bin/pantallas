@@ -1,0 +1,39 @@
+#!/bin/sh
+# Pone en fila todas las pantallas conectadas, con la del portátil
+# (eDP*/LVDS*) a la izquierda y como principal, apaga las desconectadas y
+# vuelve a pintar el fondo. Lo lanzan .xinitrc al arrancar y la regla de udev
+# (sistema/etc/udev/rules.d) al conectar o desconectar una pantalla.
+#
+# udev lo ejecuta como root: entonces se relanza como el usuario de la sesión
+# de dwm, con su DISPLAY.
+
+if [ "$(id -u)" -eq 0 ]; then
+	pid=$(pgrep -xo dwm) || exit 0
+	usuario=$(stat -c %U "/proc/$pid")
+	casa=$(getent passwd "$usuario" | cut -d: -f6)
+	entorno=$(tr '\0' '\n' <"/proc/$pid/environ" | grep -E '^(DISPLAY|XAUTHORITY)=')
+	# shellcheck disable=SC2086
+	exec env $entorno HOME="$casa" chpst -u "$usuario" "$0"
+fi
+
+estado=$(xrandr) || exit 1
+interna=$(echo "$estado" | awk '/^(eDP|LVDS)[^ ]* connected/ { print $1 }')
+otras=$(echo "$estado" | awk '/ connected/ && $1 !~ /^(eDP|LVDS)/ { print $1 }')
+fuera=$(echo "$estado" | awk '/ disconnected/ { print $1 }')
+
+set --
+ant=
+for o in $interna $otras; do
+	if [ -z "$ant" ]; then
+		set -- "$@" --output "$o" --auto --primary --pos 0x0
+	else
+		set -- "$@" --output "$o" --auto --right-of "$ant"
+	fi
+	ant=$o
+done
+for o in $fuera; do
+	set -- "$@" --output "$o" --off
+done
+[ $# -gt 0 ] && xrandr "$@"
+
+xwallpaper --zoom "$HOME/.local/share/wallpaper.jpg"

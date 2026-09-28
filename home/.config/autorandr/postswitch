@@ -1,6 +1,0 @@
-#!/bin/sh
-# Tras cambiar de pantallas: la interna del portátil (eDP*/LVDS*) como
-# principal y el fondo pintado de nuevo con la geometría nueva.
-interna=$(xrandr | awk '/^(eDP|LVDS)[^ ]* connected/ { print $1; exit }')
-[ -n "$interna" ] && xrandr --output "$interna" --primary
-feh --no-fehbg --bg-fill "$HOME/.local/share/wallpaper.jpg"

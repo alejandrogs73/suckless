@@ -1,0 +1,22 @@
+#!/bin/sh
+# Luz nocturna con sct: de 20:00 a 21:00 pasa poco a poco a luz cálida y de
+# 7:00 a 8:00 vuelve a la normal. Se lanza desde .xinitrc y la ajusta cada
+# minuto, así que también vuelve sola si xrandr la reinicia.
+
+DIA=6500
+NOCHE=4000
+
+while :; do
+	m=$(($(date +%-H) * 60 + $(date +%-M)))
+	if [ "$m" -lt 420 ] || [ "$m" -ge 1260 ]; then
+		t=$NOCHE
+	elif [ "$m" -lt 480 ]; then
+		t=$((NOCHE + (DIA - NOCHE) * (m - 420) / 60))
+	elif [ "$m" -lt 1200 ]; then
+		t=$DIA
+	else
+		t=$((DIA - (DIA - NOCHE) * (m - 1200) / 60))
+	fi
+	sct "$t"
+	sleep 60
+done

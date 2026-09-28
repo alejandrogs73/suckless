@@ -1,0 +1,70 @@
+#!/bin/sh
+# Menú de bluetooth con dmenu (clic izquierdo en BT de la barra): conectar o
+# desconectar los dispositivos emparejados (󰂱 = conectado), buscar y
+# emparejar uno nuevo y apagar el adaptador. Si está apagado, ofrece
+# encenderlo.
+
+avisar() {
+	notify-send -h string:x-dunst-stack-tag:bluetooth -i bluetooth "Bluetooth" "$1"
+}
+
+# "Device AA:BB:CC:DD:EE:FF Nombre" -> "Nombre (AA:BB:CC:DD:EE:FF)"
+lista() { sed -n 's/^Device \([^ ]*\) \(.*\)/\2 (\1)/p'; }
+mac() { printf '%s\n' "$1" | sed 's/.*(\([^)]*\))$/\1/'; }
+
+if ! bluetoothctl show | grep -q 'Powered: yes'; then
+	[ "$(echo Encender | menu -p Bluetooth:)" = Encender ] || exit 0
+	bluetoothctl power on >/dev/null
+	pkill -USR1 -x slstatus
+fi
+
+conectados=$(bluetoothctl devices Connected | lista)
+emparejados=$(bluetoothctl devices Paired | lista)
+
+opcion=$(
+	printf '%s\n' "$emparejados" | while IFS= read -r d; do
+		[ -n "$d" ] || continue
+		if printf '%s\n' "$conectados" | grep -qxF "$d"; then
+			echo "󰂱 $d"
+		else
+			echo "  $d"
+		fi
+	done
+	echo "󰍉  Buscar dispositivos"
+	echo "󰂲  Apagar"
+)
+opcion=$(printf '%s\n' "$opcion" | menu -p Bluetooth:)
+
+case $opcion in
+'') exit 0 ;;
+*"  Apagar")
+	bluetoothctl power off >/dev/null
+	;;
+*"  Buscar dispositivos")
+	avisar "Buscando dispositivos durante 10 s..."
+	bluetoothctl --timeout 10 scan on >/dev/null
+	nuevo=$(bluetoothctl devices | lista | awk -v e="$emparejados" '
+		BEGIN { n = split(e, a, "\n"); for (i = 1; i <= n; i++) visto[a[i]] }
+		!($0 in visto)' | menu -p Emparejar:)
+	[ -n "$nuevo" ] || exit 0
+	m=$(mac "$nuevo")
+	if bluetoothctl pair "$m" >/dev/null && bluetoothctl trust "$m" >/dev/null &&
+		bluetoothctl connect "$m" >/dev/null; then
+		avisar "Conectado: $nuevo"
+	else
+		avisar "No se pudo emparejar: $nuevo"
+	fi
+	;;
+"󰂱 "*)
+	bluetoothctl disconnect "$(mac "$opcion")" >/dev/null &&
+		avisar "Desconectado: ${opcion#"󰂱 "}"
+	;;
+*)
+	if bluetoothctl connect "$(mac "$opcion")" >/dev/null; then
+		avisar "Conectado: ${opcion#"  "}"
+	else
+		avisar "No se pudo conectar: ${opcion#"  "}"
+	fi
+	;;
+esac
+pkill -USR1 -x slstatus

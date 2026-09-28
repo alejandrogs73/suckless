@@ -2,9 +2,10 @@
 # Deja un Void Linux recién instalado con este escritorio: paquetes, programas
 # de suckless, enlaces de la configuración en ~ y archivos de sistema.
 #
-# Uso: ./install.sh [paquetes] [suckless] [enlaces] [gtk] [gnupg] [sistema]
-# Sin argumentos hace los seis pasos, en ese orden. Se ejecuta como el
-# usuario normal; pide sudo cuando hace falta. Se puede repetir sin problema.
+# Uso: ./install.sh [paquetes] [suckless] [enlaces] [gtk] [gnupg] [sistema] [quitar]
+# Sin argumentos hace los siete pasos, en ese orden. Se ejecuta como el
+# usuario normal; pide la contraseña de root (doas, o sudo en un Void recién
+# instalado) cuando hace falta. Se puede repetir sin problema.
 
 set -eu
 
@@ -17,15 +18,15 @@ PAQUETES="
 	libXrender-devel xorgproto imlib2-devel zlib-devel libxcrypt-devel
 
 	xorg xinit setxkbmap xrandr dbus elogind polkit
-	picom dunst libnotify feh maim xclip gammastep xss-lock autorandr
-	pipewire wireplumber libspa-bluetooth alsa-pipewire rtkit pavucontrol
-	NetworkManager bluez blueman acpid chrony tlp tlp-rdw
+	picom dunst libnotify xwallpaper nsxiv maim xclip sct xss-lock
+	pipewire wireplumber libspa-bluetooth alsa-pipewire rtkit
+	NetworkManager bluez acpid chrony tlp tlp-rdw
 	cups cups-filters hplip
 	font-firacode nerd-fonts-symbols-ttf papirus-icon-theme papirus-folders
-	sassc gtk-engine-murrine gnome-themes-extra qt5ct qt6ct
+	sassc gnome-themes-extra qt5ct qt6ct
 
-	gnupg pinentry-gtk
-	firefox thunderbird neovim git fuse-sshfs unzip
+	opendoas gnupg pinentry-dmenu
+	firefox thunderbird mpv neovim git fuse-sshfs unzip
 	yazi file ffmpeg 7zip jq poppler fd ripgrep fzf zoxide resvg ImageMagick
 "
 
@@ -37,15 +38,32 @@ SERVICIOS="dbus elogind polkitd NetworkManager bluetoothd acpid chronyd tlp auto
 # NetworkManager gestiona la red él solo; estos servicios se pelean con él.
 SERVICIOS_FUERA="dhcpcd wpa_supplicant"
 GRUPOS="audio video input network bluetooth lpadmin"
+# Lo que sustituyen otras cosas del repo: sudo (doas), feh (xwallpaper y
+# nsxiv), gammastep (sct), autorandr (pantallas), blueman y pavucontrol
+# (scripts bluetooth y volumen), pinentry-gtk (pinentry-dmenu), vlc (mpv).
+QUITAR="
+	sudo feh gammastep autorandr blueman pavucontrol pinentry-gtk
+	gtk-engine-murrine vlc btop
+"
 
 msg() { printf '\033[1;32m==>\033[0m %s\n' "$*"; }
 die() { printf '\033[1;31merror:\033[0m %s\n' "$*" >&2; exit 1; }
 
+# Como root: con doas cuando ya está configurado; antes (Void recién
+# instalado) con sudo.
+root() {
+	if command -v doas >/dev/null && [ -f /etc/doas.conf ]; then
+		doas "$@"
+	else
+		sudo "$@"
+	fi
+}
+
 paquetes() {
 	msg "Instalando paquetes"
-	sudo xbps-install -Syu xbps
+	root xbps-install -Syu xbps
 	# shellcheck disable=SC2086
-	sudo xbps-install -Syu $PAQUETES
+	root xbps-install -Syu $PAQUETES
 }
 
 suckless() {
@@ -53,7 +71,7 @@ suckless() {
 		msg "Compilando $p"
 		make -C "$DIR/suckless/$p" clean >/dev/null
 		make -C "$DIR/suckless/$p"
-		sudo make -C "$DIR/suckless/$p" install
+		root make -C "$DIR/suckless/$p" install
 	done
 }
 
@@ -86,10 +104,10 @@ enlaces() {
 }
 
 # Compila el tema GTK Everforest (verde, oscuro, paleta medium) en ~/.themes
-# y lo enlaza para las apps de GTK 4. Qué tema e iconos se usan lo dicen
-# home/.gtkrc-2.0 y home/.config/gtk-*/settings.ini. Las carpetas de Papirus
-# se ponen verdes; una actualización de papirus-icon-theme las devuelve a
-# azul, y basta con repetir este paso.
+# y lo enlaza para las apps de GTK 4. Qué tema e iconos se usan lo dice
+# home/.config/gtk-*/settings.ini. Las carpetas de Papirus se ponen verdes;
+# una actualización de papirus-icon-theme las devuelve a azul, y basta con
+# repetir este paso.
 gtk() {
 	msg "Compilando el tema GTK Everforest"
 	tmp=$(mktemp -d)
@@ -98,25 +116,14 @@ gtk() {
 	"$tmp/themes/install.sh" -t green -c dark --tweaks medium -l >/dev/null
 	rm -rf "$tmp"
 
-	# La plantilla de GTK 2 del tema trae los colores de Gruvbox (fallo del
-	# tema original): se cambian por Everforest medium. pinentry-gtk es GTK 2.
-	sed -i \
-		-e 's|^gtk-color-scheme = "text_color:.*|gtk-color-scheme = "text_color:#d3c6aa\\nbase_color:#2d353b"|' \
-		-e 's|^gtk-color-scheme = "fg_color:.*|gtk-color-scheme = "fg_color:#d3c6aa\\nbg_color:#2d353b"|' \
-		-e 's|^gtk-color-scheme = "selected_fg_color:.*|gtk-color-scheme = "selected_fg_color:#2d353b\\nselected_bg_color:#a7c080"|' \
-		-e 's|^gtk-color-scheme = "titlebar_fg_color:.*|gtk-color-scheme = "titlebar_fg_color:#d3c6aa\\ntitlebar_bg_color:#2d353b"|' \
-		-e 's|^gtk-color-scheme = "menu_color:.*|gtk-color-scheme = "menu_color:#343f44"|' \
-		-e 's|^gtk-color-scheme = "tooltip_fg_color:.*|gtk-color-scheme = "tooltip_fg_color:#d3c6aa\\ntooltip_bg_color:#3d484d"|' \
-		-e 's|^gtk-color-scheme = "link_color:.*|gtk-color-scheme = "link_color:#7fbbb3\\nvisited_link_color:#d699b6"|' \
-		"$HOME/.themes/Everforest-Green-Dark-Medium/gtk-2.0/gtkrc"
-
 	msg "Carpetas de Papirus en verde"
-	sudo papirus-folders -C green --theme Papirus-Dark >/dev/null
+	root papirus-folders -C green --theme Papirus-Dark >/dev/null
 }
 
 # ~/.gnupg se copia a mano (de un USB, por ejemplo). Deja los permisos como
-# los quiere gpg, usa un pinentry gráfico (en una tty cae a curses solo) y
-# activa el agente SSH con las claves de autenticación.
+# los quiere gpg, usa pinentry-dmenu (en una tty, pinentry-curses; lo decide
+# home/.local/bin/pinentry-menu) y activa el agente SSH con las claves de
+# autenticación.
 gnupg() {
 	g="$HOME/.gnupg"
 	if [ ! -d "$g" ]; then
@@ -125,20 +132,36 @@ gnupg() {
 	fi
 
 	msg "Arreglando permisos de $g"
-	sudo chown -R "$(id -u):$(id -g)" "$g"
+	root chown -R "$(id -u):$(id -g)" "$g"
 	find "$g" -type d -exec chmod 700 {} +
 	find "$g" -type f -exec chmod 600 {} +
 
-	msg "Configurando gpg-agent (pinentry gráfico y SSH)"
+	msg "Configurando gpg-agent (pinentry-dmenu y SSH)"
 	conf="$g/gpg-agent.conf"
 	touch "$conf"
 	chmod 600 "$conf"
 	sed -i '/^pinentry-program/d; /^default-cache-ttl/d' "$conf"
-	echo "pinentry-program /usr/bin/pinentry-gtk-2" >>"$conf"
+	echo "pinentry-program $HOME/.local/bin/pinentry-menu" >>"$conf"
 	grep -qx enable-ssh-support "$conf" || echo enable-ssh-support >>"$conf"
 	# Recordar la contraseña una hora desde el último uso (por defecto, 10 min)
 	echo "default-cache-ttl 3600" >>"$conf"
 	echo "default-cache-ttl-ssh 3600" >>"$conf"
+
+	# pinentry-dmenu con la fuente y los colores de dmenu
+	cat >"$g/pinentry-dmenu.conf" <<-EOF
+		asterisk = "*";
+		prompt = "Contraseña:";
+		font = "Fira Code:size=11";
+		prompt_bg = "#a7c080";
+		prompt_fg = "#2d353b";
+		normal_bg = "#2d353b";
+		normal_fg = "#d3c6aa";
+		select_bg = "#a7c080";
+		select_fg = "#2d353b";
+		desc_bg = "#2d353b";
+		desc_fg = "#d3c6aa";
+	EOF
+	chmod 600 "$g/pinentry-dmenu.conf"
 
 	# sshcontrol dice qué claves usa el agente para SSH: se añaden las
 	# subclaves de autenticación [A] que falten.
@@ -163,13 +186,12 @@ sistema() {
 	find . -type f | while read -r f; do
 		f=${f#.}
 		case $f in
-		/etc/sudoers.d/*)
-			# git no guarda el modo 440 que exige sudo; y un sudoers
-			# roto deja sin sudo, así que se valida antes de copiarlo.
-			visudo -cf ".$f" >/dev/null || die "sudoers inválido: $f"
-			sudo install -D -m 440 ".$f" "$f"
+		/etc/doas.conf)
+			# Un doas.conf roto deja sin root: se valida antes de copiarlo.
+			doas -C ".$f" || die "doas.conf inválido"
+			root install -D -m 400 ".$f" "$f"
 			;;
-		*) sudo install -D -m "$(stat -c %a ".$f")" ".$f" "$f" ;;
+		*) root install -D -m "$(stat -c %a ".$f")" ".$f" "$f" ;;
 		esac
 		echo "  $f"
 	done
@@ -179,31 +201,47 @@ sistema() {
 	for s in $SERVICIOS; do
 		[ -d "/etc/sv/$s" ] || die "no existe el servicio $s (¿faltan paquetes?)"
 		if [ ! -e "/var/service/$s" ]; then
-			sudo ln -s "/etc/sv/$s" /var/service/
+			root ln -s "/etc/sv/$s" /var/service/
 		fi
 	done
 	for s in $SERVICIOS_FUERA; do
 		if [ -e "/var/service/$s" ]; then
-			sudo rm "/var/service/$s"
+			root rm "/var/service/$s"
 		fi
 	done
 
 	msg "Añadiendo $USER a los grupos: $GRUPOS"
 	for g in $GRUPOS; do
 		if getent group "$g" >/dev/null; then
-			sudo usermod -aG "$g" "$USER"
+			root usermod -aG "$g" "$USER"
 		fi
 	done
+}
+
+# Desinstala lo que el repo ya no usa (QUITAR), si está instalado. sudo solo
+# se quita cuando doas ya funciona (paso sistema).
+quitar() {
+	[ -f /etc/doas.conf ] || die "falta /etc/doas.conf: ejecuta antes el paso sistema"
+	fuera=
+	for p in $QUITAR; do
+		xbps-query "$p" >/dev/null 2>&1 && fuera="$fuera $p"
+	done
+	if [ -z "$fuera" ]; then
+		return 0
+	fi
+	msg "Quitando:$fuera"
+	# shellcheck disable=SC2086
+	root xbps-remove -Ry $fuera
 }
 
 [ -f /etc/void-release ] || command -v xbps-install >/dev/null ||
 	die "esto es solo para Void Linux"
 [ "$(id -u)" -ne 0 ] || die "ejecútalo como tu usuario, no como root"
 
-[ $# -gt 0 ] || set -- paquetes suckless enlaces gtk gnupg sistema
+[ $# -gt 0 ] || set -- paquetes suckless enlaces gtk gnupg sistema quitar
 for paso; do
 	case $paso in
-	paquetes|suckless|enlaces|gtk|gnupg|sistema) "$paso" ;;
+	paquetes|suckless|enlaces|gtk|gnupg|sistema|quitar) "$paso" ;;
 	*) die "paso desconocido: $paso" ;;
 	esac
 done

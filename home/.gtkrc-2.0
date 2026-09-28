@@ -1,3 +1,0 @@
-# GTK 2 (pinentry-gtk, entre otros). El tema lo instala install.sh (paso gtk).
-gtk-theme-name="Everforest-Green-Dark-Medium"
-gtk-icon-theme-name="Papirus-Dark"

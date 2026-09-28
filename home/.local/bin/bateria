@@ -3,7 +3,7 @@
 # mientras se descarga, y al 3 % suspende (con slock, como al cerrar la
 # tapa) en vez de dejar que se apague de golpe. Cada umbral actúa una vez;
 # al enchufar el cargador se reinicia. Se lanza desde .xinitrc y comprueba
-# cada minuto. Suspender usa "sudo -n zzz" (regla en sistema/etc/sudoers.d).
+# cada minuto. Suspender usa "doas -n zzz" (regla en sistema/etc/doas.conf).
 
 BAJA=15
 CRITICA=5
@@ -26,7 +26,7 @@ while :; do
 			-i battery-empty "Batería agotada" "Queda un $nivel %: suspendiendo en 10 s"
 		avisado=$SUSPENDER
 		sleep 10
-		[ "$(cat "$bat/status")" = Discharging ] && sudo -n zzz
+		[ "$(cat "$bat/status")" = Discharging ] && doas -n zzz
 	elif [ "$nivel" -le "$CRITICA" ] && [ "$avisado" -gt "$CRITICA" ]; then
 		notify-send -u critical -h string:x-dunst-stack-tag:bateria \
 			-i battery-empty "Batería crítica" "Queda un $nivel %: enchufa el cargador ya"
