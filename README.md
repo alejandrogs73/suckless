@@ -142,17 +142,30 @@ y muestra una notificación con el nivel.
 Los menús de los scripts (`apagado`, `bluetooth`, `volumen salida`...) usan
 `menu`, que es dmenu con la fuente y los colores de dwm.
 
-### Clics en la barra
-
-| Zona | Izquierdo | Central | Derecho | Rueda |
-|---|---|---|---|---|
-| Red | Conectarse a una red (`wifi`) | | `wpa_cli` | |
-| VOL | Elegir la salida de audio (`volumen salida`) | Silenciar | Silenciar el micro | Volumen ± |
-| BT | Menú de bluetooth (`bluetooth`): conectar, desconectar, buscar y emparejar, apagar | | Encender o apagar | |
-| Fecha | Calendario del mes | | | |
-
 Las capturas se guardan en `~/Images/Screenshots`, se copian al portapapeles
 y muestran una notificación.
+
+## Barra (slstatus)
+
+    [ CPU: 12% ] [ RAM: 40% ] [ WiFi: Livebox6 ] [ BAT: 80% + ] [ VOL: 50% ] [ BT: OFF ] [ 28/09/26 12:30 ]
+
+Los bloques de red, VOL, BT y fecha se pueden pulsar (parche `statuscmd` de
+dwm). Lo que hace cada clic está en `statuscmds`, en `suckless/dwm/config.h`,
+y qué zona es cada una lo marcan los bytes `\001`...`\004` de
+`suckless/slstatus/config.h`.
+
+| Bloque | Muestra | Izquierdo | Central | Derecho | Rueda |
+|---|---|---|---|---|---|
+| CPU, RAM | Uso en % | | | | |
+| Red | `ETH` con cable; si no, `WiFi:` y la red | Menú `wifi`: redes por señal, conectar, pedir y guardar la contraseña | | `wpa_cli` en una st flotante | |
+| BAT | Porcentaje y estado (`+` cargando, `-` descargando) | | | | |
+| VOL | Volumen; `MUT` si está silenciado, `MIC OFF` si el micro lo está | Elegir la salida de audio (`volumen salida`) | Silenciar | Silenciar el micro | Subir / bajar |
+| BT | `OFF`, o el dispositivo conectado | Menú `bluetooth`: conectar, desconectar, buscar y emparejar, apagar | | Encender o apagar | |
+| Fecha | Día y hora | Calendario del mes (`calendario`) | | | |
+
+Si se cambia el `config.h` de dwm, hay que reinstalarlo y reiniciarlo para
+que los clics nuevos funcionen: `pkill -HUP dwm` lo relanza sin cerrar las
+ventanas (parches restartsig y preserveonrestart).
 
 ## Sesión
 

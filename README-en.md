@@ -144,17 +144,30 @@ slstatus and shows a notification with the level.
 The script menus (`apagado`, `bluetooth`, `volumen salida`...) use `menu`,
 which is dmenu with the dwm font and colours.
 
-### Bar clicks
-
-| Area | Left | Middle | Right | Wheel |
-|---|---|---|---|---|
-| Network | Connect to a network (`wifi`) | | `wpa_cli` | |
-| VOL | Pick the audio output (`volumen salida`) | Mute | Mute the mic | Volume ± |
-| BT | Bluetooth menu (`bluetooth`): connect, disconnect, scan and pair, power off | | Power on or off | |
-| Date | This month's calendar | | | |
-
 Screenshots are saved in `~/Images/Screenshots`, copied to the clipboard and
 shown in a notification.
+
+## Bar (slstatus)
+
+    [ CPU: 12% ] [ RAM: 40% ] [ WiFi: Livebox6 ] [ BAT: 80% + ] [ VOL: 50% ] [ BT: OFF ] [ 28/09/26 12:30 ]
+
+The network, VOL, BT and date blocks are clickable (dwm's `statuscmd`
+patch). What each click does is in `statuscmds`, in `suckless/dwm/config.h`,
+and which area is which is marked by the `\001`...`\004` bytes in
+`suckless/slstatus/config.h`.
+
+| Block | Shows | Left | Middle | Right | Wheel |
+|---|---|---|---|---|---|
+| CPU, RAM | Usage in % | | | | |
+| Network | `ETH` on cable; otherwise `WiFi:` and the network | `wifi` menu: networks by signal, connect, ask for and save the password | | `wpa_cli` in a floating st | |
+| BAT | Percentage and state (`+` charging, `-` discharging) | | | | |
+| VOL | Volume; `MUT` if muted, `MIC OFF` if the mic is | Pick the audio output (`volumen salida`) | Mute | Mute the mic | Up / down |
+| BT | `OFF`, or the connected device | `bluetooth` menu: connect, disconnect, scan and pair, power off | | Power on or off | |
+| Date | Day and time | This month's calendar (`calendario`) | | | |
+
+After changing dwm's `config.h`, reinstall and restart it for new clicks to
+work: `pkill -HUP dwm` restarts it without closing windows (restartsig and
+preserveonrestart patches).
 
 ## Session
 
