@@ -20,7 +20,7 @@ PAQUETES="
 	xorg xinit setxkbmap xrandr dbus turnstile
 	picom dunst libnotify xwallpaper nsxiv maim xclip sct xssstate
 	pipewire wireplumber libspa-bluetooth alsa-pipewire
-	wpa_supplicant dhcpcd bluez acpid openntpd tlp
+	wpa_supplicant dhcpcd bluez acpid openntpd tlp zramen
 	cups cups-filters hplip
 	font-firacode nerd-fonts-symbols-ttf papirus-icon-theme papirus-folders
 	sassc gnome-themes-extra qt5ct
@@ -34,7 +34,7 @@ SUCKLESS="dwm st dmenu slstatus slock scroll clipmenu"
 # Tema GTK Everforest, en una versión fija para que siempre salga igual
 GTK_TEMA_REPO=https://github.com/Fausto-Korpsvart/Everforest-GTK-Theme
 GTK_TEMA_COMMIT=9b8be4d6648ae9eaae3dd550105081f8c9054825
-SERVICIOS="dbus turnstiled wpa_supplicant dhcpcd bluetoothd acpid openntpd tlp automontaje cupsd"
+SERVICIOS="dbus turnstiled wpa_supplicant dhcpcd bluetoothd acpid openntpd tlp zramen automontaje cupsd"
 # La red la llevan wpa_supplicant y dhcpcd. polkitd no hace falta como
 # servicio: si algo lo pide (libvirt), D-Bus lo arranca. turnstiled sustituye
 # a elogind y openntpd a chronyd. avahi-daemon (mDNS) no hace falta: la

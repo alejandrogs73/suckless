@@ -55,14 +55,14 @@ for example) and repeated safely:
 6. `sistema` (system): copies `sistema/` into `/`, sets up
    `wpa_supplicant.conf` so wheel users can use `wpa_cli` without root and
    save networks, enables the runit services (dbus, turnstiled,
-   wpa_supplicant, dhcpcd, bluetoothd, acpid, openntpd, tlp, automontaje,
-   cupsd), removes NetworkManager, elogind, chronyd, avahi-daemon (the printer
-   has a fixed IP), sshd (nobody SSHes into the laptop), nix-daemon and
-   polkitd (if something asks for polkit, like libvirt, D-Bus starts it on its
-   own) and adds the user to the audio, video, input, network, bluetooth,
-   lpadmin (printer management) and `_pipewire` (realtime priority for audio
-   without rtkit) groups. `doas.conf` is checked with `doas -C` before it is
-   installed with mode 400.
+   wpa_supplicant, dhcpcd, bluetoothd, acpid, openntpd, tlp, zramen,
+   automontaje, cupsd), removes NetworkManager, elogind, chronyd, avahi-daemon
+   (the printer has a fixed IP), sshd (nobody SSHes into the laptop),
+   nix-daemon and polkitd (if something asks for polkit, like libvirt, D-Bus
+   starts it on its own) and adds the user to the audio, video, input,
+   network, bluetooth, lpadmin (printer management) and `_pipewire` (realtime
+   priority for audio without rtkit) groups. `doas.conf` is checked with `doas
+   -C` before it is installed with mode 400.
 7. `quitar` (remove): uninstalls what the repo no longer uses because
    something else replaces it: sudo (doas), feh (xwallpaper and nsxiv),
    gammastep (sct), autorandr (`pantallas`), blueman and pavucontrol (the
@@ -190,6 +190,9 @@ preserveonrestart patches).
   (the laptop one on the left and as primary) at startup and whenever one is
   plugged or unplugged (udev rule in `sistema/`), then repaints the
   wallpaper with `xwallpaper`.
+- Memory: compressed swap in RAM with zram (`zramen` service, up to half the
+  RAM, with zstd) ahead of the disk swap, which stays as a fallback
+  (`sistema/etc/sv/zramen/conf` and `sistema/etc/sysctl.d/99-zram.conf`).
 - Audio: `.xinitrc` runs pipewire, wireplumber and pipewire-pulse in a loop,
   so if one of them dies it comes back a second later (without wireplumber
   everything goes to "Dummy Output").

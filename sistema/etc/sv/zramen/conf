@@ -1,0 +1,7 @@
+# Swap comprimida en RAM (zram), antes que la del disco. Con 11 GB de RAM se
+# llega a usar la swap del NVMe; en zram cabe más y va mucho más rápido.
+# Hasta la mitad de la RAM (máximo 8 GB) y zstd, que comprime más que lz4. La
+# prioridad por defecto (32767) la pone por delante de la swap del disco.
+export ZRAM_COMP_ALGORITHM=zstd
+export ZRAM_SIZE=50
+export ZRAM_MAX_SIZE=8192
