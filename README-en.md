@@ -162,7 +162,7 @@ and which area is which is marked by the `\001`...`\004` bytes in
 | Network | `ETH` on cable; otherwise `WiFi:` and the network | `wifi` menu: networks by signal, connect, ask for and save the password | | `wpa_cli` in a floating st | |
 | BAT | Percentage and state (`+` charging, `-` discharging) | | | | |
 | VOL | Volume; `MUT` if muted, `MIC OFF` if the mic is | Pick the audio output (`volumen salida`) | Mute | Mute the mic | Up / down |
-| BT | `OFF`, or the connected device | `bluetooth` menu: connect, disconnect, scan and pair, power off | | Power on or off | |
+| BT | `OFF`, or the connected device and its battery if it reports it (`VJ 901 100%`) | `bluetooth` menu: connect, disconnect, scan and pair, power off | | Power on or off | |
 | Date | Day and time | This month's calendar (`calendario`) | | | |
 
 After changing dwm's `config.h`, reinstall and restart it for new clicks to

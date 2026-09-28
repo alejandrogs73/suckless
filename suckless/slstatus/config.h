@@ -52,8 +52,11 @@ static const struct arg args[] = {
 	/* mismo volumen que maneja wpctl (PipeWire); MIC OFF si el micro está silenciado */
 	{ run_command,      "\002[ VOL: %s ]\002 ",       "wpctl get-volume @DEFAULT_AUDIO_SINK@ | awk '{ printf \"%d%%\", $2 * 100 + 0.5 } /MUTED/ { printf \" MUT\" }'; "
 	                                                  "wpctl get-volume @DEFAULT_AUDIO_SOURCE@ | grep -q MUTED && printf ' MIC OFF'" },
-	/* OFF si el adaptador está apagado; si no, el primer dispositivo conectado */
+	/* OFF si el adaptador está apagado; si no, el primer dispositivo conectado
+	 * y su batería, si la da ("Battery Percentage: 0x64 (100)" -> " 100%") */
 	{ run_command,      "\003[ BT: %s ]\003 ",        "bluetoothctl show | grep -q 'Powered: yes' || { echo OFF; exit; }; "
-	                                                  "bluetoothctl devices Connected | head -1 | cut -d' ' -f3-" },
+	                                                  "set -- $(bluetoothctl devices Connected | head -1); [ $# -gt 0 ] || exit; "
+	                                                  "m=$2; shift 2; printf %s \"$*\"; "
+	                                                  "bluetoothctl info \"$m\" | awk -F'[()]' '/Battery Percentage/ { printf \" %s%%\", $2 }'" },
 	{ datetime,         "\004[ %s ]\004",            "%d/%m/%y %H:%M" },
 };

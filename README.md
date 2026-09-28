@@ -160,7 +160,7 @@ y qué zona es cada una lo marcan los bytes `\001`...`\004` de
 | Red | `ETH` con cable; si no, `WiFi:` y la red | Menú `wifi`: redes por señal, conectar, pedir y guardar la contraseña | | `wpa_cli` en una st flotante | |
 | BAT | Porcentaje y estado (`+` cargando, `-` descargando) | | | | |
 | VOL | Volumen; `MUT` si está silenciado, `MIC OFF` si el micro lo está | Elegir la salida de audio (`volumen salida`) | Silenciar | Silenciar el micro | Subir / bajar |
-| BT | `OFF`, o el dispositivo conectado | Menú `bluetooth`: conectar, desconectar, buscar y emparejar, apagar | | Encender o apagar | |
+| BT | `OFF`, o el dispositivo conectado y su batería si la da (`VJ 901 100%`) | Menú `bluetooth`: conectar, desconectar, buscar y emparejar, apagar | | Encender o apagar | |
 | Fecha | Día y hora | Calendario del mes (`calendario`) | | | |
 
 Si se cambia el `config.h` de dwm, hay que reinstalarlo y reiniciarlo para
