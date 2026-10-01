@@ -21,13 +21,22 @@ emparejar() {
 }
 
 # conectar MAC: si no está emparejado lo empareja; si no está a la vista, lo
-# busca unos segundos y lo vuelve a intentar.
+# busca unos segundos y lo vuelve a intentar. Si el dispositivo ha olvidado el
+# emparejamiento (br-connection-key-missing), lo borra y lo empareja de nuevo.
 conectar() {
 	if ! bluetoothctl info "$1" | grep -q 'Paired: yes'; then
 		emparejar "$1" || { buscar 8 && emparejar "$1"; } || return 1
 	fi
-	bluetoothctl connect "$1" >/dev/null ||
-		{ buscar 8 && bluetoothctl connect "$1" >/dev/null; }
+	salida=$(bluetoothctl connect "$1" 2>&1) && return 0
+	case $salida in
+	*key-missing*)
+		bluetoothctl remove "$1" >/dev/null
+		buscar 8 && emparejar "$1" && bluetoothctl connect "$1" >/dev/null
+		;;
+	*)
+		buscar 8 && bluetoothctl connect "$1" >/dev/null
+		;;
+	esac
 }
 
 # conectar_y_avisar "Nombre (MAC)"
